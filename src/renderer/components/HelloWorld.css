@@ -1,0 +1,25 @@
+/* HelloWorld Component Styles */
+.hello-world {
+  text-align: center;
+  padding: 20px;
+}
+
+.hello-world h1 {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  font-size: 24px;
+}
+
+.hello-world p {
+  color: var(--text-tertiary);
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.welcome-message {
+  background-color: var(--background-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border-left: 4px solid var(--accent-primary);
+} 

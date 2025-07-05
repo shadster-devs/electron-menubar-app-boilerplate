@@ -1,0 +1,69 @@
+/* Header Component Styles */
+.header {
+  background-color: var(--background-tertiary);
+  border-bottom: 1px solid var(--border-secondary);
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  -webkit-app-region: no-drag;
+  position: relative;
+}
+
+.header-title h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.header-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-button:hover {
+  background-color: var(--interactive-hover);
+  color: var(--interactive-active);
+}
+
+.settings-button.active {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.settings-button.active:hover {
+  background-color: var(--accent-primary-hover);
+}
+
+.minimize-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.minimize-button:hover {
+  background-color: var(--interactive-hover);
+  color: var(--interactive-active);
+} 
