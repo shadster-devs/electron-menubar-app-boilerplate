@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
 import { Palette, Settings2, Keyboard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import type { AppSettings } from '../../shared/constants';
 import ShortcutRecorder from './ShortcutRecorder';
 import './Settings.css';
-import type { AppSettings } from '../../shared/constants';
 
 interface SettingsProps {
   settings: AppSettings | null;
@@ -20,20 +20,20 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
 
   const handleSettingChange = async (key: keyof AppSettings, value: any) => {
     if (!settings) return;
-    
+
     const newSettings = { ...settings, [key]: value };
     onSettingsChange(newSettings);
   };
 
   const handleShortcutChange = async (shortcutKey: string, value: string) => {
     if (!settings) return;
-    
+
     const newSettings: AppSettings = {
       ...settings,
       shortcuts: {
         ...settings.shortcuts,
-        [shortcutKey]: value
-      }
+        [shortcutKey]: value,
+      },
     };
     onSettingsChange(newSettings);
   };
@@ -51,39 +51,39 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
 
   if (isLoading || !settings) {
     return (
-      <div className="macos-settings">
-        <div className="settings-content">
-          <div className="loading">Loading settings...</div>
+      <div className='macos-settings'>
+        <div className='settings-content'>
+          <div className='loading'>Loading settings...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="macos-settings">
-      <div className="settings-content">
+    <div className='macos-settings'>
+      <div className='settings-content'>
         {/* Appearance Section */}
-        <div className="settings-section">
-          <div className="section-header">
-            <div className="section-icon">
+        <div className='settings-section'>
+          <div className='section-header'>
+            <div className='section-icon'>
               <Palette size={16} />
             </div>
-            <h2 className="section-title">Appearance</h2>
+            <h2 className='section-title'>Appearance</h2>
           </div>
-          <div className="section-content">
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Theme</label>
-                <p className="setting-description">Choose how the app looks</p>
+          <div className='section-content'>
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Theme</label>
+                <p className='setting-description'>Choose how the app looks</p>
               </div>
-              <div className="setting-control">
+              <div className='setting-control'>
                 <select
-                  className="macos-select"
+                  className='macos-select'
                   value={settings.theme}
-                  onChange={(e) => handleSettingChange('theme', e.target.value)}
+                  onChange={e => handleSettingChange('theme', e.target.value)}
                 >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
+                  <option value='light'>Light</option>
+                  <option value='dark'>Dark</option>
                 </select>
               </div>
             </div>
@@ -91,78 +91,94 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
         </div>
 
         {/* General Section */}
-        <div className="settings-section">
-          <div className="section-header">
-            <div className="section-icon">
+        <div className='settings-section'>
+          <div className='section-header'>
+            <div className='section-icon'>
               <Settings2 size={16} />
             </div>
-            <h2 className="section-title">General</h2>
+            <h2 className='section-title'>General</h2>
           </div>
-          <div className="section-content">
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Launch at startup</label>
-                <p className="setting-description">Automatically start when you log in</p>
+          <div className='section-content'>
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Launch at startup</label>
+                <p className='setting-description'>
+                  Automatically start when you log in
+                </p>
               </div>
-              <div className="setting-control">
-                <label className="macos-toggle">
+              <div className='setting-control'>
+                <label className='macos-toggle'>
                   <input
-                    type="checkbox"
+                    type='checkbox'
                     checked={settings.autoStart}
-                    onChange={(e) => handleSettingChange('autoStart', e.target.checked)}
+                    onChange={e =>
+                      handleSettingChange('autoStart', e.target.checked)
+                    }
                   />
-                  <span className="toggle-slider"></span>
+                  <span className='toggle-slider'></span>
                 </label>
               </div>
             </div>
-            
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Show notifications</label>
-                <p className="setting-description">Display system notifications</p>
+
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Show notifications</label>
+                <p className='setting-description'>
+                  Display system notifications
+                </p>
               </div>
-              <div className="setting-control">
-                <label className="macos-toggle">
+              <div className='setting-control'>
+                <label className='macos-toggle'>
                   <input
-                    type="checkbox"
+                    type='checkbox'
                     checked={settings.showNotifications}
-                    onChange={(e) => handleSettingChange('showNotifications', e.target.checked)}
+                    onChange={e =>
+                      handleSettingChange('showNotifications', e.target.checked)
+                    }
                   />
-                  <span className="toggle-slider"></span>
+                  <span className='toggle-slider'></span>
                 </label>
               </div>
             </div>
-            
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Show in Dock</label>
-                <p className="setting-description">Display app icon in the Dock</p>
+
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Show in Dock</label>
+                <p className='setting-description'>
+                  Display app icon in the Dock
+                </p>
               </div>
-              <div className="setting-control">
-                <label className="macos-toggle">
+              <div className='setting-control'>
+                <label className='macos-toggle'>
                   <input
-                    type="checkbox"
+                    type='checkbox'
                     checked={settings.showInDock}
-                    onChange={(e) => handleSettingChange('showInDock', e.target.checked)}
+                    onChange={e =>
+                      handleSettingChange('showInDock', e.target.checked)
+                    }
                   />
-                  <span className="toggle-slider"></span>
+                  <span className='toggle-slider'></span>
                 </label>
               </div>
             </div>
-            
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Hide when focus is lost</label>
-                <p className="setting-description">Automatically hide window when clicking elsewhere</p>
+
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Hide when focus is lost</label>
+                <p className='setting-description'>
+                  Automatically hide window when clicking elsewhere
+                </p>
               </div>
-              <div className="setting-control">
-                <label className="macos-toggle">
+              <div className='setting-control'>
+                <label className='macos-toggle'>
                   <input
-                    type="checkbox"
+                    type='checkbox'
                     checked={settings.hideOnBlur}
-                    onChange={(e) => handleSettingChange('hideOnBlur', e.target.checked)}
+                    onChange={e =>
+                      handleSettingChange('hideOnBlur', e.target.checked)
+                    }
                   />
-                  <span className="toggle-slider"></span>
+                  <span className='toggle-slider'></span>
                 </label>
               </div>
             </div>
@@ -170,38 +186,44 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
         </div>
 
         {/* Keyboard Shortcuts Section */}
-        <div className="settings-section">
-          <div className="section-header">
-            <div className="section-icon">
+        <div className='settings-section'>
+          <div className='section-header'>
+            <div className='section-icon'>
               <Keyboard size={16} />
             </div>
-            <h2 className="section-title">Keyboard Shortcuts</h2>
+            <h2 className='section-title'>Keyboard Shortcuts</h2>
           </div>
-          <div className="section-content">
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Show/Hide Window</label>
-                <p className="setting-description">Toggle the main window visibility</p>
+          <div className='section-content'>
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Show/Hide Window</label>
+                <p className='setting-description'>
+                  Toggle the main window visibility
+                </p>
               </div>
-              <div className="setting-control">
+              <div className='setting-control'>
                 <ShortcutRecorder
                   value={settings.shortcuts?.toggleWindow || ''}
-                  onChange={(shortcut) => handleShortcutChange('toggleWindow', shortcut)}
-                  placeholder="Click to record shortcut"
+                  onChange={shortcut =>
+                    handleShortcutChange('toggleWindow', shortcut)
+                  }
+                  placeholder='Click to record shortcut'
                 />
               </div>
             </div>
-            
-            <div className="setting-row">
-              <div className="setting-info">
-                <label className="setting-label">Quit Application</label>
-                <p className="setting-description">Completely quit the application</p>
+
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Quit Application</label>
+                <p className='setting-description'>
+                  Completely quit the application
+                </p>
               </div>
-              <div className="setting-control">
+              <div className='setting-control'>
                 <ShortcutRecorder
                   value={settings.shortcuts?.quit || ''}
-                  onChange={(shortcut) => handleShortcutChange('quit', shortcut)}
-                  placeholder="Click to record shortcut"
+                  onChange={shortcut => handleShortcutChange('quit', shortcut)}
+                  placeholder='Click to record shortcut'
                 />
               </div>
             </div>
@@ -209,9 +231,9 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
         </div>
 
         {/* Actions Section */}
-        <div className="settings-actions">
+        <div className='settings-actions'>
           <button
-            className="macos-button secondary"
+            className='macos-button secondary'
             onClick={handleResetSettings}
           >
             Reset to Defaults
@@ -222,4 +244,4 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   );
 };
 
-export default Settings; 
+export default Settings;

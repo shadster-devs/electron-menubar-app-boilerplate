@@ -44,13 +44,13 @@ export class IPCManager {
     ipcMain.handle('settings:set', async (_, key: string, value: any) => {
       try {
         const success = await this.settingsManager.set(key as any, value);
-        
+
         // Handle side effects for specific settings
         if (success) {
           const settings = await this.settingsManager.getSettings();
           await this.handleSettingsUpdate(settings);
         }
-        
+
         return success;
       } catch (error) {
         console.error('Error setting value:', error);
@@ -61,12 +61,12 @@ export class IPCManager {
     ipcMain.handle('settings:setAll', async (_, settings: any) => {
       try {
         const success = await this.saveAllSettings(settings);
-        
+
         // Handle side effects
         if (success) {
           await this.handleSettingsUpdate(settings);
         }
-        
+
         return success;
       } catch (error) {
         console.error('Error saving all settings:', error);
@@ -86,10 +86,10 @@ export class IPCManager {
     ipcMain.handle('settings:reset', async () => {
       try {
         const defaultSettings = await this.settingsManager.resetSettings();
-        
+
         // Handle side effects for reset
         await this.handleSettingsUpdate(defaultSettings);
-        
+
         return defaultSettings;
       } catch (error) {
         console.error('Error resetting settings:', error);
@@ -124,7 +124,10 @@ export class IPCManager {
     }
 
     // Handle dock visibility (macOS only)
-    if (process.platform === 'darwin' && typeof settings.showInDock === 'boolean') {
+    if (
+      process.platform === 'darwin' &&
+      typeof settings.showInDock === 'boolean'
+    ) {
       this.handleDockVisibility(settings.showInDock);
     }
   }
@@ -139,18 +142,21 @@ export class IPCManager {
       }
     });
 
-    ipcMain.handle('shortcuts:update', async (_, key: string, accelerator: string) => {
-      try {
-        return this.shortcutManager.updateShortcut(
-          key as any,
-          accelerator,
-          this.shortcutCallbacks || undefined
-        );
-      } catch (error) {
-        console.error('Error updating shortcut:', error);
-        return false;
+    ipcMain.handle(
+      'shortcuts:update',
+      async (_, key: string, accelerator: string) => {
+        try {
+          return this.shortcutManager.updateShortcut(
+            key as any,
+            accelerator,
+            this.shortcutCallbacks || undefined
+          );
+        } catch (error) {
+          console.error('Error updating shortcut:', error);
+          return false;
+        }
       }
-    });
+    );
 
     ipcMain.handle('shortcuts:unregister', async () => {
       try {
@@ -164,7 +170,7 @@ export class IPCManager {
   }
 
   private setupAppHandlers(): void {
-    ipcMain.handle('app:minimize', async (event) => {
+    ipcMain.handle('app:minimize', async event => {
       try {
         const window = BrowserWindow.fromWebContents(event.sender);
         window?.minimize();
@@ -175,7 +181,7 @@ export class IPCManager {
       }
     });
 
-    ipcMain.handle('app:hide', async (event) => {
+    ipcMain.handle('app:hide', async event => {
       try {
         const window = BrowserWindow.fromWebContents(event.sender);
         window?.hide();
@@ -186,7 +192,7 @@ export class IPCManager {
       }
     });
 
-    ipcMain.handle('app:close', async (event) => {
+    ipcMain.handle('app:close', async event => {
       try {
         if (this.quitCallback) {
           this.quitCallback();
@@ -213,7 +219,10 @@ export class IPCManager {
     }
 
     try {
-      const success = this.shortcutManager.updateAllShortcuts(shortcuts, this.shortcutCallbacks);
+      const success = this.shortcutManager.updateAllShortcuts(
+        shortcuts,
+        this.shortcutCallbacks
+      );
       if (success) {
         console.log('Shortcuts updated successfully:', shortcuts);
       } else {
@@ -240,7 +249,10 @@ export class IPCManager {
   }
 
   // Utility methods for external use
-  addHandler(channel: string, handler: (event: any, ...args: any[]) => any): void {
+  addHandler(
+    channel: string,
+    handler: (event: any, ...args: any[]) => any
+  ): void {
     try {
       ipcMain.handle(channel, handler);
       console.log(`Custom IPC handler added: ${channel}`);
@@ -266,4 +278,4 @@ export class IPCManager {
       console.error('Error during IPC cleanup:', error);
     }
   }
-} 
+}

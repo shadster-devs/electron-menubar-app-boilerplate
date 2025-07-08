@@ -4,14 +4,12 @@ module.exports = {
     browser: true,
     es2021: true,
     node: true,
-    electron: true,
   },
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'plugin:@typescript-eslint/recommended',
     'plugin:import/recommended',
     'plugin:import/typescript',
     'prettier', // Must be last to override other configs
@@ -97,7 +95,6 @@ module.exports = {
       env: {
         browser: false,
         node: true,
-        electron: true,
       },
       rules: {
         '@typescript-eslint/no-var-requires': 'off',
@@ -120,7 +117,6 @@ module.exports = {
       env: {
         browser: true,
         node: true,
-        electron: true,
       },
     },
     {

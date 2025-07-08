@@ -147,12 +147,12 @@
 }
 
 /* Dark theme adjustments */
-[data-theme="dark"] .error-icon {
+[data-theme='dark'] .error-icon {
   color: #ff7979;
 }
 
-[data-theme="dark"] .error-message,
-[data-theme="dark"] .error-stack {
+[data-theme='dark'] .error-message,
+[data-theme='dark'] .error-stack {
   background-color: #1a1a1a;
   border-color: #404040;
   color: #e1e1e1;
@@ -163,17 +163,17 @@
   .error-boundary {
     padding: 1rem;
   }
-  
+
   .error-boundary-content {
     padding: 2rem 1.5rem;
   }
-  
+
   .error-actions {
     flex-direction: column;
   }
-  
+
   .error-button {
     width: 100%;
     justify-content: center;
   }
-} 
+}

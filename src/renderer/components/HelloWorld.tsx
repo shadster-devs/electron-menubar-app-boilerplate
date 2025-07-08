@@ -1,17 +1,27 @@
-import React from 'react';
 import { Sparkles } from 'lucide-react';
+import React from 'react';
 import './HelloWorld.css';
 
 const HelloWorld: React.FC = () => {
   return (
-    <div className="hello-world">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '16px' }}>
+    <div className='hello-world'>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          marginBottom: '16px',
+        }}
+      >
         <Sparkles size={24} style={{ color: 'var(--accent-primary)' }} />
         <h1 style={{ margin: 0 }}>Hello World!</h1>
       </div>
-      <div className="welcome-message">
+      <div className='welcome-message'>
         <p>Welcome to your Electron Menubar App!</p>
-        <p>This is a simple React TypeScript application running in the menubar.</p>
+        <p>
+          This is a simple React TypeScript application running in the menubar.
+        </p>
       </div>
       <p>
         <strong>Features:</strong>
@@ -34,4 +44,4 @@ const HelloWorld: React.FC = () => {
   );
 };
 
-export default HelloWorld; 
+export default HelloWorld;

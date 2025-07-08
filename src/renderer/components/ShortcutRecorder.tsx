@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
 import './ShortcutRecorder.css';
 
 interface ShortcutRecorderProps {
@@ -8,17 +8,21 @@ interface ShortcutRecorderProps {
   placeholder?: string;
 }
 
-const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange, placeholder }) => {
+const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({
+  value,
+  onChange,
+  placeholder,
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedKeys, setRecordedKeys] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const formatShortcut = (keys: string[]): string => {
     if (keys.length === 0) return '';
-    
+
     const modifiers: string[] = [];
     const regularKeys: string[] = [];
-    
+
     keys.forEach(key => {
       if (key === 'Meta' || key === 'cmd') {
         modifiers.push('CommandOrControl');
@@ -54,16 +58,16 @@ const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange, pl
     // Remove duplicates
     const uniqueModifiers = [...new Set(modifiers)];
     const uniqueKeys = [...new Set(regularKeys)];
-    
+
     return [...uniqueModifiers, ...uniqueKeys].join('+');
   };
 
   const displayShortcut = (shortcut: string): string => {
     if (!shortcut) return '';
-    
+
     // Detect platform using navigator.platform (available in renderer)
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    
+
     return shortcut
       .replace(/CommandOrControl/g, isMac ? '⌘' : 'Ctrl')
       .replace(/Alt/g, isMac ? '⌥' : 'Alt')
@@ -82,31 +86,31 @@ const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange, pl
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isRecording) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    
+
     const keys: string[] = [];
-    
+
     if (e.metaKey) keys.push('Meta');
     if (e.ctrlKey) keys.push('Control');
     if (e.altKey) keys.push('Alt');
     if (e.shiftKey) keys.push('Shift');
-    
+
     // Add the main key if it's not a modifier
     if (!['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) {
       keys.push(e.key);
     }
-    
+
     setRecordedKeys(keys);
   };
 
   const handleKeyUp = (e: React.KeyboardEvent) => {
     if (!isRecording) return;
-    
+
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (recordedKeys.length > 0) {
       const shortcut = formatShortcut(recordedKeys);
       onChange(shortcut);
@@ -134,16 +138,18 @@ const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange, pl
     setRecordedKeys([]);
   };
 
-  const displayValue = isRecording 
-    ? (recordedKeys.length > 0 ? displayShortcut(formatShortcut(recordedKeys)) : 'Press keys...')
+  const displayValue = isRecording
+    ? recordedKeys.length > 0
+      ? displayShortcut(formatShortcut(recordedKeys))
+      : 'Press keys...'
     : displayShortcut(value);
 
   return (
-    <div className="shortcut-recorder">
-      <div className="shortcut-input-container">
+    <div className='shortcut-recorder'>
+      <div className='shortcut-input-container'>
         <input
           ref={inputRef}
-          type="text"
+          type='text'
           value={displayValue}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -155,20 +161,22 @@ const ShortcutRecorder: React.FC<ShortcutRecorderProps> = ({ value, onChange, pl
         />
         {value && (
           <button
-            type="button"
+            type='button'
             onClick={handleClear}
-            className="shortcut-clear"
-            title="Clear shortcut"
+            className='shortcut-clear'
+            title='Clear shortcut'
           >
             <X size={12} />
           </button>
         )}
       </div>
-      <div className="shortcut-hint">
-        {isRecording ? 'Press your key combination...' : 'Click to record a new shortcut'}
+      <div className='shortcut-hint'>
+        {isRecording
+          ? 'Press your key combination...'
+          : 'Click to record a new shortcut'}
       </div>
     </div>
   );
 };
 
-export default ShortcutRecorder; 
+export default ShortcutRecorder;

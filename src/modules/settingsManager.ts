@@ -1,6 +1,6 @@
-import { app } from 'electron';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { app } from 'electron';
 import { AppSettings, DEFAULT_SETTINGS } from '../shared/constants';
 
 export class SettingsManager {
@@ -19,6 +19,7 @@ export class SettingsManager {
       return { ...this.defaultSettings, ...userSettings };
     } catch (error) {
       // File doesn't exist or parsing failed - return defaults
+      console.error('Failed to get settings:', error);
       return { ...this.defaultSettings };
     }
   }
@@ -38,15 +39,16 @@ export class SettingsManager {
       // Delete existing settings file
       await fs.unlink(this.settingsPath);
     } catch (error) {
+      console.error('Failed to reset settings:', error);
       // File doesn't exist - that's fine
     }
-    
+
     // Return a fresh copy of default settings
     const freshDefaults = { ...this.defaultSettings };
-    
+
     // Save the defaults to file for consistency
     await this.saveSettings(freshDefaults);
-    
+
     return freshDefaults;
   }
 
@@ -55,7 +57,10 @@ export class SettingsManager {
     return settings[key];
   }
 
-  async set<K extends keyof AppSettings>(key: K, value: AppSettings[K]): Promise<boolean> {
+  async set<K extends keyof AppSettings>(
+    key: K,
+    value: AppSettings[K]
+  ): Promise<boolean> {
     try {
       const settings = await this.getSettings();
       settings[key] = value;
@@ -66,7 +71,10 @@ export class SettingsManager {
     }
   }
 
-  async updateSetting<K extends keyof AppSettings>(key: K, updater: (current: AppSettings[K]) => AppSettings[K]): Promise<boolean> {
+  async updateSetting<K extends keyof AppSettings>(
+    key: K,
+    updater: (current: AppSettings[K]) => AppSettings[K]
+  ): Promise<boolean> {
     try {
       const settings = await this.getSettings();
       settings[key] = updater(settings[key]);
@@ -95,6 +103,7 @@ export class SettingsManager {
   // Synchronous methods for backward compatibility
   getSettingsSync(): AppSettings {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs');
       if (fs.existsSync(this.settingsPath)) {
         const data = fs.readFileSync(this.settingsPath, 'utf8');
@@ -108,6 +117,7 @@ export class SettingsManager {
 
   saveSettingsSync(settings: AppSettings): boolean {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs');
       fs.writeFileSync(this.settingsPath, JSON.stringify(settings, null, 2));
       return true;
@@ -116,4 +126,4 @@ export class SettingsManager {
       return false;
     }
   }
-} 
+}

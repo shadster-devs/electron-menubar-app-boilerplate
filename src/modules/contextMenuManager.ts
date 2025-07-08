@@ -31,35 +31,34 @@ export class ContextMenuManager {
     this.contextMenu = Menu.buildFromTemplate(menuItems);
   }
 
-  private buildMenuItems(customItems?: MenuItemConstructorOptions[]): MenuItemConstructorOptions[] {
+  private buildMenuItems(
+    customItems?: MenuItemConstructorOptions[]
+  ): MenuItemConstructorOptions[] {
     const baseItems: MenuItemConstructorOptions[] = [
       {
         label: 'Show/Hide',
-        click: () => this.toggleWindow()
+        click: () => this.toggleWindow(),
       },
       { type: 'separator' },
       {
         label: 'Reload',
-        click: () => this.reloadWindow()
+        click: () => this.reloadWindow(),
       },
       {
         label: 'Toggle Developer Tools',
-        click: () => this.toggleDevTools()
-      }
+        click: () => this.toggleDevTools(),
+      },
     ];
 
     if (customItems && customItems.length > 0) {
-      baseItems.push(
-        { type: 'separator' },
-        ...customItems
-      );
+      baseItems.push({ type: 'separator' }, ...customItems);
     }
 
     baseItems.push(
       { type: 'separator' },
       {
         label: 'Quit',
-        click: () => this.handleQuit()
+        click: () => this.handleQuit(),
       }
     );
 
@@ -68,7 +67,7 @@ export class ContextMenuManager {
 
   private toggleWindow(): void {
     if (!this.menubar.window) return;
-    
+
     if (this.menubar.window.isVisible()) {
       this.menubar.hideWindow();
     } else {
@@ -147,7 +146,9 @@ export class ContextMenuManager {
     if (this.menubar.tray) {
       this.menubar.tray.on('right-click', () => this.showContextMenu());
       this.currentBehavior = 'right-only';
-      console.log('Right-click context menu listener added (conservative mode)');
+      console.log(
+        'Right-click context menu listener added (conservative mode)'
+      );
     }
   }
 
@@ -169,12 +170,12 @@ export class ContextMenuManager {
 
   updateContextMenu(customItems?: MenuItemConstructorOptions[]): void {
     this.createContextMenu(customItems);
-    
+
     // Reapply current behavior if it uses setContextMenu
     if (this.currentBehavior === 'left-and-right') {
       this.menubar.tray?.setContextMenu(this.contextMenu);
     }
-    
+
     console.log('Context menu updated');
   }
 
@@ -195,4 +196,4 @@ export class ContextMenuManager {
     }
     this.contextMenu = null;
   }
-} 
+}

@@ -16,7 +16,7 @@ export class ShortcutManager {
   constructor() {
     this.shortcuts = {
       toggleWindow: DEFAULT_SETTINGS.shortcuts.toggleWindow,
-      quit: DEFAULT_SETTINGS.shortcuts.quit
+      quit: DEFAULT_SETTINGS.shortcuts.quit,
     };
   }
 
@@ -31,7 +31,9 @@ export class ShortcutManager {
         if (callback && accelerator) {
           const success = globalShortcut.register(accelerator, callback);
           if (!success) {
-            console.warn(`Failed to register shortcut: ${name} (${accelerator})`);
+            console.warn(
+              `Failed to register shortcut: ${name} (${accelerator})`
+            );
           }
         }
       });
@@ -59,7 +61,11 @@ export class ShortcutManager {
     return { ...this.shortcuts };
   }
 
-  updateShortcut(name: ShortcutName, accelerator: string, callbacks?: ShortcutCallbacks): boolean {
+  updateShortcut(
+    name: ShortcutName,
+    accelerator: string,
+    callbacks?: ShortcutCallbacks
+  ): boolean {
     try {
       // Unregister the old shortcut if it exists
       const oldAccelerator = this.shortcuts[name];
@@ -76,7 +82,9 @@ export class ShortcutManager {
         if (callback) {
           const success = globalShortcut.register(accelerator, callback);
           if (!success) {
-            console.warn(`Failed to register updated shortcut: ${name} (${accelerator})`);
+            console.warn(
+              `Failed to register updated shortcut: ${name} (${accelerator})`
+            );
             return false;
           }
         }
@@ -90,7 +98,10 @@ export class ShortcutManager {
     }
   }
 
-  updateAllShortcuts(shortcuts: Partial<ShortcutConfig>, callbacks: ShortcutCallbacks): boolean {
+  updateAllShortcuts(
+    shortcuts: Partial<ShortcutConfig>,
+    callbacks: ShortcutCallbacks
+  ): boolean {
     try {
       // Update shortcuts object
       this.shortcuts = { ...this.shortcuts, ...shortcuts };
@@ -119,4 +130,4 @@ export class ShortcutManager {
   cleanup(): void {
     this.unregisterShortcuts();
   }
-} 
+}

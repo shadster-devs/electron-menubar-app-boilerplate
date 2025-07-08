@@ -23,7 +23,9 @@
   background-color: var(--background-secondary);
   color: var(--text-primary);
   font-size: 12px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'SF Mono', Monaco, 'Cascadia Code',
+    'Roboto Mono', Consolas, 'Courier New', monospace;
   font-weight: 500;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -40,23 +42,28 @@
 .shortcut-input:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-primary-light), 0 2px 4px var(--shadow-light);
+  box-shadow:
+    0 0 0 3px var(--accent-primary-light),
+    0 2px 4px var(--shadow-light);
 }
 
 .shortcut-input.recording {
   border-color: var(--accent-primary);
   background-color: var(--accent-primary-light);
   animation: pulse 1.5s infinite;
-  box-shadow: 0 0 0 2px var(--accent-primary-light), 0 2px 8px var(--shadow-medium);
+  box-shadow:
+    0 0 0 2px var(--accent-primary-light),
+    0 2px 8px var(--shadow-medium);
 }
 
 @keyframes pulse {
-  0%, 100% { 
-    opacity: 1; 
+  0%,
+  100% {
+    opacity: 1;
     transform: scale(1);
   }
-  50% { 
-    opacity: 0.9; 
+  50% {
+    opacity: 0.9;
     transform: scale(1.01);
   }
 }
@@ -111,4 +118,4 @@
   opacity: 1;
   visibility: visible;
   height: auto;
-} 
+}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import type { AppSettings } from '../shared/constants';
 import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import HelloWorld from './components/HelloWorld';
 import Settings from './components/Settings';
-import type { AppSettings } from '../shared/constants';
 import './App.css';
 
 type Tab = 'home' | 'settings';
@@ -44,7 +44,7 @@ const App: React.FC = () => {
   const handleSettingsChange = async (newSettings: AppSettings) => {
     // Update local state immediately for UI responsiveness
     setSettings(newSettings);
-    
+
     // Save settings to persistent storage through SettingsManager
     try {
       const success = await window.electronAPI?.saveSettings(newSettings);
@@ -64,10 +64,10 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="app">
+      <div className='app'>
         <Header currentTab={currentTab} onTabChange={handleTabChange} />
-        
-        <div className="content">
+
+        <div className='content'>
           {currentTab === 'home' && (
             <ErrorBoundary>
               <HelloWorld />
@@ -76,12 +76,12 @@ const App: React.FC = () => {
           {currentTab === 'settings' && (
             <ErrorBoundary>
               {isLoadingSettings ? (
-                <div className="loading-container">
-                  <div className="loading">Loading settings...</div>
+                <div className='loading-container'>
+                  <div className='loading'>Loading settings...</div>
                 </div>
               ) : (
-                <Settings 
-                  settings={settings} 
+                <Settings
+                  settings={settings}
                   onSettingsChange={handleSettingsChange}
                 />
               )}
@@ -93,4 +93,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App; 
+export default App;

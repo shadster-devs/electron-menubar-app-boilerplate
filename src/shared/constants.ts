@@ -24,12 +24,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hideOnBlur: false,
   shortcuts: {
     toggleWindow: 'CommandOrControl+Shift+Space',
-    quit: 'CommandOrControl+Q'
+    quit: 'CommandOrControl+Q',
   },
   window: {
     width: 400,
-    height: 500
-  }
+    height: 500,
+  },
 };
 
 export interface ElectronAPI {
@@ -38,19 +38,19 @@ export interface ElectronAPI {
   saveSettings: (settings: AppSettings) => Promise<boolean>;
   getSetting: (key: string) => Promise<any>;
   resetSettings: () => Promise<AppSettings | null>;
-  
+
   // Shortcuts API
   getShortcuts: () => Promise<Record<string, string>>;
   updateShortcut: (key: string, accelerator: string) => Promise<boolean>;
   unregisterShortcuts: () => Promise<boolean>;
-  
+
   // App controls
   minimize: () => Promise<boolean>;
   hide: () => Promise<boolean>;
   close: () => Promise<boolean>;
   getPlatform: () => Promise<string>;
-  
+
   // Legacy aliases for backward compatibility
   quitApp: () => Promise<boolean>;
   hideWindow: () => Promise<boolean>;
-} 
+}
