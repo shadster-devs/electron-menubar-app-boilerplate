@@ -5,6 +5,7 @@ node_modules/
 dist/
 build/
 
+release/
 # Environment variables
 .env
 .env.local
