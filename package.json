@@ -69,7 +69,7 @@
   "build": {
     "appId": "com.example.menubar-app",
     "productName": "Menubar App",
-    "copyright": "Copyright © 2024 ${author}",
+    "copyright": "Copyright © 2025 shadster-devs",
     "directories": {
       "buildResources": "assets",
       "output": "release"
