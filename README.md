@@ -2,7 +2,7 @@
 
 A clean, modular, production-ready Electron menubar application built with React and TypeScript.
 
-## ✨ Features
+## ✨ Features 
 
 ### Core Features
 - 🎯 **Menubar Integration**: Elegant tray-based application using `menubar` library
@@ -23,7 +23,7 @@ A clean, modular, production-ready Electron menubar application built with React
 - ✅ **Auto-Updates**: Built-in update mechanism ready
 - ✅ **Cross-Platform**: Support for macOS, Windows, Linux
 
-## 🚀 Quick Start
+## 🚀 Quick Start  
 
 ### Prerequisites
 - Node.js (v18 or higher recommended)
