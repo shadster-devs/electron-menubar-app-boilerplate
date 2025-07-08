@@ -28,10 +28,10 @@ class MenubarApp {
     this.initializeModules();
 
     // Setup menubar
-    this.setupMenubar();
+    await this.setupMenubar();
 
     // Setup managers
-    this.setupManagers();
+    await this.setupManagers();
   }
 
   private initializeModules(): void {
@@ -40,21 +40,25 @@ class MenubarApp {
     this.shortcutManager = new ShortcutManager();
 
     // Initialize IPC manager with dependencies
-    this.ipcManager = new IPCManager(this.settingsManager, this.shortcutManager, () => this.quitApp());
+    this.ipcManager = new IPCManager(
+      this.settingsManager, 
+      this.shortcutManager, 
+      () => this.quitApp()
+    );
 
-    // Application menu is not needed for menubar apps
+    console.log('Core modules initialized');
   }
 
-  private setupMenubar(): void {
+  private async setupMenubar(): Promise<void> {
     // Load saved settings to get window size
-    const savedSettings = this.settingsManager.getSettings();
+    const savedSettings = await this.settingsManager.getSettings();
     
     this.menubar = menubar({
       index: `file://${path.join(__dirname, 'renderer', 'index.html')}`,
       preloadWindow: true,
-      showOnAllWorkspaces: false,
+      showOnAllWorkspaces: true,
       windowPosition: 'trayCenter',
-            tooltip: 'Menubar App',
+      tooltip: 'Menubar App',
       showDockIcon: false, // Don't show in dock
       browserWindow: {
         width: savedSettings.window.width,
@@ -105,37 +109,47 @@ class MenubarApp {
         }
       });
       
-      // Hide on blur (focus lost) but not when dev tools are open
-      this.menubar.window.on('blur', () => {
-        // Check if window and webContents still exist before accessing
-        if (this.menubar.window && 
-            this.menubar.window.webContents && 
-            !this.menubar.window.webContents.isDevToolsOpened()) {
-          this.menubar.hideWindow();
+      // Hide on blur (focus lost) - only if enabled in settings
+      this.menubar.window.on('blur', async () => {
+        try {
+          const settings = await this.settingsManager.getSettings();
+          // Only hide on blur if the setting is enabled and dev tools are not open
+          if (settings.hideOnBlur && 
+              this.menubar.window && 
+              this.menubar.window.webContents && 
+              !this.menubar.window.webContents.isDevToolsOpened()) {
+            this.menubar.hideWindow();
+          }
+        } catch (error) {
+          console.error('Error checking hideOnBlur setting:', error);
         }
       });
 
       // Save window size when resized
-      this.menubar.window.on('resize', () => {
+      this.menubar.window.on('resize', async () => {
         if (this.menubar.window) {
           const [width, height] = this.menubar.window.getSize();
           console.log(`Window resized to: ${width}x${height}`);
           
           // Update settings with new size using convenience method
-          this.settingsManager.updateWindowSize(width, height);
+          try {
+            await this.settingsManager.updateWindowSize(width, height);
+          } catch (error) {
+            console.error('Error saving window size:', error);
+          }
         }
       });
     });
   }
 
-  private setupManagers(): void {
+  private async setupManagers(): Promise<void> {
     // Initialize context menu manager after menubar is created
     this.contextMenuManager = new ContextMenuManager(this.menubar, () => this.quitApp());
     
-    // Context menu only appears on right-click
-    this.contextMenuManager.setupTrayContextMenu('right-only');
+    // Initialize context menu with right-click only behavior
+    this.contextMenuManager.initialize('right-only');
     
-    // Shortcuts are registered in the 'ready' event handler
+    console.log('Managers setup completed');
   }
 
   private getShortcutCallbacks() {
@@ -156,23 +170,35 @@ class MenubarApp {
     };
   }
 
-  private registerDefaultShortcuts(): void {
-    const callbacks = this.getShortcutCallbacks();
+  private async registerDefaultShortcuts(): Promise<void> {
+    try {
+      const callbacks = this.getShortcutCallbacks();
 
-    // Set callbacks in IPC manager so it can re-register shortcuts when settings change
-    this.ipcManager.setShortcutCallbacks(callbacks);
-    
-    // Load saved settings and apply them before registering shortcuts
-    const savedSettings = this.settingsManager.getSettings();
-    console.log('Loading saved settings on startup:', savedSettings);
-    
-    // Update shortcuts with saved values (or defaults if no saved settings exist)
-    this.shortcutManager.updateShortcuts(savedSettings.shortcuts, callbacks);
-    
-    // Apply dock visibility setting on startup (macOS only)
-    this.applyDockVisibility(savedSettings.showInDock);
-    
-    console.log('Shortcuts registered:', Array.from(this.shortcutManager.getShortcuts()));
+      // Set callbacks in IPC manager so it can re-register shortcuts when settings change
+      this.ipcManager.setShortcutCallbacks(callbacks);
+      
+      // Load saved settings and apply them before registering shortcuts
+      const savedSettings = await this.settingsManager.getSettings();
+      console.log('Loading saved settings on startup:', savedSettings);
+      
+      // Register shortcuts with saved values (or defaults if no saved settings exist)
+      const shortcutsRegistered = this.shortcutManager.registerShortcuts(callbacks);
+      if (shortcutsRegistered) {
+        // Update shortcuts with saved values if different from defaults
+        if (savedSettings.shortcuts) {
+          this.shortcutManager.updateAllShortcuts(savedSettings.shortcuts, callbacks);
+        }
+      } else {
+        console.warn('Failed to register some shortcuts');
+      }
+      
+      // Apply dock visibility setting on startup (macOS only)
+      this.applyDockVisibility(savedSettings.showInDock);
+      
+      console.log('Shortcuts registered:', this.shortcutManager.getShortcuts());
+    } catch (error) {
+      console.error('Error registering shortcuts:', error);
+    }
   }
 
   // Public methods for external control
@@ -193,9 +219,6 @@ class MenubarApp {
       this.contextMenuManager.updateContextMenu(customItems);
     }
   }
-
-  // Application menu is not needed for menubar apps
-  // If you need a traditional app menu, add MenuManager back
 
   public setTrayClickBehavior(behavior: 'right-only' | 'left-and-right' | 'left-only'): void {
     if (this.contextMenuManager) {
@@ -223,6 +246,16 @@ class MenubarApp {
   public quitApp(): void {
     console.log('Quitting application...');
     this.isQuitting = true;
+    
+    // Cleanup managers
+    try {
+      this.shortcutManager?.cleanup();
+      this.contextMenuManager?.cleanup();
+      this.ipcManager?.cleanup();
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+    
     app.quit();
   }
 }
@@ -243,8 +276,12 @@ app.on('before-quit', () => {
   }
   
   // Clean up shortcuts before quitting
-  if (menubarApp.getShortcutManager()) {
-    menubarApp.getShortcutManager().unregisterShortcuts();
+  try {
+    if (menubarApp.getShortcutManager()) {
+      menubarApp.getShortcutManager().cleanup();
+    }
+  } catch (error) {
+    console.error('Error cleaning up shortcuts:', error);
   }
 });
 

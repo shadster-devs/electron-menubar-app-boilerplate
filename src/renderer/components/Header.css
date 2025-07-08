@@ -3,11 +3,23 @@
   background-color: var(--background-tertiary);
   border-bottom: 1px solid var(--border-secondary);
   padding: 8px 16px;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   -webkit-app-region: no-drag;
   position: relative;
+}
+
+.header-left {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.header-title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .header-title h1 {
@@ -17,9 +29,10 @@
   color: var(--text-secondary);
 }
 
-.header-controls {
+.header-right {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
   align-items: center;
 }
 
@@ -48,6 +61,24 @@
 
 .settings-button.active:hover {
   background-color: var(--accent-primary-hover);
+}
+
+.back-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-button:hover {
+  background-color: var(--interactive-hover);
+  color: var(--interactive-active);
 }
 
 .minimize-button {

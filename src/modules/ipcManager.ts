@@ -1,147 +1,269 @@
 import { ipcMain, BrowserWindow, app } from 'electron';
 import { SettingsManager } from './settingsManager';
-import { ShortcutManager } from './shortcutManager';
+import { ShortcutManager, ShortcutCallbacks } from './shortcutManager';
 
 export class IPCManager {
-  private settingsManager: SettingsManager;
-  private shortcutManager: ShortcutManager;
-  private shortcutCallbacks: any = null;
-  private quitCallback?: () => void;
+  private readonly settingsManager: SettingsManager;
+  private readonly shortcutManager: ShortcutManager;
+  private shortcutCallbacks: ShortcutCallbacks | null = null;
+  private readonly quitCallback?: () => void;
 
-  constructor(settingsManager: SettingsManager, shortcutManager: ShortcutManager, quitCallback?: () => void) {
+  constructor(
+    settingsManager: SettingsManager,
+    shortcutManager: ShortcutManager,
+    quitCallback?: () => void
+  ) {
     this.settingsManager = settingsManager;
     this.shortcutManager = shortcutManager;
     this.quitCallback = quitCallback;
-    this.setupIPCHandlers();
+    this.initialize();
   }
 
-  // Set the callbacks for shortcuts (called from main process)
-  setShortcutCallbacks(callbacks: any): void {
+  setShortcutCallbacks(callbacks: ShortcutCallbacks): void {
     this.shortcutCallbacks = callbacks;
   }
 
-  // Update shortcuts from settings and re-register them
-  private updateShortcutsFromSettings(shortcuts: any): void {
-    if (!this.shortcutCallbacks) {
-      console.warn('Shortcut callbacks not set, cannot update shortcuts');
-      return;
-    }
-
-    // Update the shortcuts in the manager
-    this.shortcutManager.updateShortcuts(shortcuts, this.shortcutCallbacks);
-    console.log('Shortcuts updated from settings:', shortcuts);
+  private initialize(): void {
+    this.setupSettingsHandlers();
+    this.setupShortcutHandlers();
+    this.setupAppHandlers();
+    console.log('IPC handlers initialized');
   }
 
-  private setupIPCHandlers(): void {
-    // Settings IPC handlers
-    ipcMain.handle('settings:get', async (event, key: string) => {
-      return this.settingsManager.get(key);
+  private setupSettingsHandlers(): void {
+    ipcMain.handle('settings:get', async (_, key: string) => {
+      try {
+        const value = await this.settingsManager.get(key as any);
+        return value;
+      } catch (error) {
+        console.error('Error getting value:', error);
+        return null;
+      }
     });
 
-    ipcMain.handle('settings:set', async (event, key: string, value: any) => {
-      return this.settingsManager.set(key, value);
+    ipcMain.handle('settings:set', async (_, key: string, value: any) => {
+      try {
+        const success = await this.settingsManager.set(key as any, value);
+        
+        // Handle side effects for specific settings
+        if (success) {
+          const settings = await this.settingsManager.getSettings();
+          await this.handleSettingsUpdate(settings);
+        }
+        
+        return success;
+      } catch (error) {
+        console.error('Error setting value:', error);
+        return false;
+      }
     });
 
-    ipcMain.handle('settings:setAll', async (event, settings: any) => {
-      // Save all settings at once
-      Object.entries(settings).forEach(([key, value]) => {
-        this.settingsManager.set(key, value);
-      });
-      
-      // If shortcuts were updated, re-register them
-      if (settings.shortcuts) {
-        this.updateShortcutsFromSettings(settings.shortcuts);
+    ipcMain.handle('settings:setAll', async (_, settings: any) => {
+      try {
+        const success = await this.saveAllSettings(settings);
+        
+        // Handle side effects
+        if (success) {
+          await this.handleSettingsUpdate(settings);
+        }
+        
+        return success;
+      } catch (error) {
+        console.error('Error saving all settings:', error);
+        return false;
       }
-      
-      // Handle dock visibility (macOS only)
-      if (process.platform === 'darwin' && typeof settings.showInDock === 'boolean') {
-        this.handleDockVisibility(settings.showInDock);
-      }
-      
-      return true;
     });
 
     ipcMain.handle('settings:getAll', async () => {
-      return this.settingsManager.getAll();
+      try {
+        return await this.settingsManager.getSettings();
+      } catch (error) {
+        console.error('Error getting all settings:', error);
+        return null;
+      }
     });
 
-    // Shortcuts IPC handlers
+    ipcMain.handle('settings:reset', async () => {
+      try {
+        const defaultSettings = await this.settingsManager.resetSettings();
+        
+        // Handle side effects for reset
+        await this.handleSettingsUpdate(defaultSettings);
+        
+        return defaultSettings;
+      } catch (error) {
+        console.error('Error resetting settings:', error);
+        return null;
+      }
+    });
+  }
+
+  private async saveAllSettings(settings: any): Promise<boolean> {
+    try {
+      // Use the new async methods if available, fallback to sync
+      if (typeof this.settingsManager.saveSettings === 'function') {
+        const currentSettings = await this.settingsManager.getSettings();
+        const updatedSettings = { ...currentSettings, ...settings };
+        return await this.settingsManager.saveSettings(updatedSettings);
+      } else {
+        // Fallback for sync version
+        const currentSettings = this.settingsManager.getSettingsSync();
+        const updatedSettings = { ...currentSettings, ...settings };
+        return this.settingsManager.saveSettingsSync(updatedSettings);
+      }
+    } catch (error) {
+      console.error('Error in saveAllSettings:', error);
+      return false;
+    }
+  }
+
+  private async handleSettingsUpdate(settings: any): Promise<void> {
+    // Update shortcuts if they were changed
+    if (settings.shortcuts && this.shortcutCallbacks) {
+      this.updateShortcuts(settings.shortcuts);
+    }
+
+    // Handle dock visibility (macOS only)
+    if (process.platform === 'darwin' && typeof settings.showInDock === 'boolean') {
+      this.handleDockVisibility(settings.showInDock);
+    }
+  }
+
+  private setupShortcutHandlers(): void {
     ipcMain.handle('shortcuts:get', async () => {
-      const shortcuts = this.shortcutManager.getShortcuts();
-      return Object.fromEntries(shortcuts);
+      try {
+        return this.shortcutManager.getShortcuts();
+      } catch (error) {
+        console.error('Error getting shortcuts:', error);
+        return {};
+      }
     });
 
-    ipcMain.handle('shortcuts:update', async (event, key: string, accelerator: string) => {
-      this.shortcutManager.updateShortcut(key, accelerator);
-      return true;
+    ipcMain.handle('shortcuts:update', async (_, key: string, accelerator: string) => {
+      try {
+        return this.shortcutManager.updateShortcut(
+          key as any,
+          accelerator,
+          this.shortcutCallbacks || undefined
+        );
+      } catch (error) {
+        console.error('Error updating shortcut:', error);
+        return false;
+      }
     });
 
     ipcMain.handle('shortcuts:unregister', async () => {
-      this.shortcutManager.unregisterShortcuts();
-      return true;
+      try {
+        this.shortcutManager.unregisterShortcuts();
+        return true;
+      } catch (error) {
+        console.error('Error unregistering shortcuts:', error);
+        return false;
+      }
     });
+  }
 
-    // App-level IPC handlers
+  private setupAppHandlers(): void {
     ipcMain.handle('app:minimize', async (event) => {
-      const window = BrowserWindow.fromWebContents(event.sender);
-      if (window) {
-        window.minimize();
+      try {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        window?.minimize();
+        return true;
+      } catch (error) {
+        console.error('Error minimizing window:', error);
+        return false;
       }
     });
 
     ipcMain.handle('app:hide', async (event) => {
-      const window = BrowserWindow.fromWebContents(event.sender);
-      if (window) {
-        window.hide();
+      try {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        window?.hide();
+        return true;
+      } catch (error) {
+        console.error('Error hiding window:', error);
+        return false;
       }
     });
 
     ipcMain.handle('app:close', async (event) => {
-      // Use the proper quit callback if available
-      if (this.quitCallback) {
-        this.quitCallback();
-      } else {
-        const window = BrowserWindow.fromWebContents(event.sender);
-        if (window) {
-          window.close();
+      try {
+        if (this.quitCallback) {
+          this.quitCallback();
+        } else {
+          const window = BrowserWindow.fromWebContents(event.sender);
+          window?.close();
         }
+        return true;
+      } catch (error) {
+        console.error('Error closing app:', error);
+        return false;
       }
     });
 
-    // Platform info
     ipcMain.handle('app:getPlatform', async () => {
       return process.platform;
     });
   }
 
-  // Method to add custom IPC handlers if needed
-  addHandler(channel: string, handler: (event: any, ...args: any[]) => any): void {
-    ipcMain.handle(channel, handler);
-  }
+  private updateShortcuts(shortcuts: any): void {
+    if (!this.shortcutCallbacks) {
+      console.warn('Shortcut callbacks not set, cannot update shortcuts');
+      return;
+    }
 
-  // Method to remove handlers
-  removeHandler(channel: string): void {
-    ipcMain.removeHandler(channel);
-  }
-
-  // Handle dock visibility (macOS only)
-  private handleDockVisibility(showInDock: boolean): void {
-    if (process.platform === 'darwin') {
-      try {
-        if (showInDock) {
-          app.dock.show();
-        } else {
-          app.dock.hide();
-        }
-        console.log(`Dock visibility set to: ${showInDock}`);
-      } catch (error) {
-        console.error('Error setting dock visibility:', error);
+    try {
+      const success = this.shortcutManager.updateAllShortcuts(shortcuts, this.shortcutCallbacks);
+      if (success) {
+        console.log('Shortcuts updated successfully:', shortcuts);
+      } else {
+        console.warn('Failed to update some shortcuts');
       }
+    } catch (error) {
+      console.error('Error updating shortcuts:', error);
     }
   }
 
-  // Cleanup method
+  private handleDockVisibility(showInDock: boolean): void {
+    if (process.platform !== 'darwin') return;
+
+    try {
+      if (showInDock) {
+        app.dock.show();
+      } else {
+        app.dock.hide();
+      }
+      console.log(`Dock visibility set to: ${showInDock}`);
+    } catch (error) {
+      console.error('Error setting dock visibility:', error);
+    }
+  }
+
+  // Utility methods for external use
+  addHandler(channel: string, handler: (event: any, ...args: any[]) => any): void {
+    try {
+      ipcMain.handle(channel, handler);
+      console.log(`Custom IPC handler added: ${channel}`);
+    } catch (error) {
+      console.error(`Error adding handler ${channel}:`, error);
+    }
+  }
+
+  removeHandler(channel: string): void {
+    try {
+      ipcMain.removeHandler(channel);
+      console.log(`IPC handler removed: ${channel}`);
+    } catch (error) {
+      console.error(`Error removing handler ${channel}:`, error);
+    }
+  }
+
   cleanup(): void {
-    ipcMain.removeAllListeners();
+    try {
+      ipcMain.removeAllListeners();
+      console.log('All IPC handlers cleaned up');
+    } catch (error) {
+      console.error('Error during IPC cleanup:', error);
+    }
   }
 } 

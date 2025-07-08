@@ -2,87 +2,65 @@ import React, { useState, useEffect } from 'react';
 import { Palette, Settings2, Keyboard } from 'lucide-react';
 import ShortcutRecorder from './ShortcutRecorder';
 import './Settings.css';
+import type { AppSettings } from '../../shared/constants';
 
 interface SettingsProps {
-  settings: any;
-  onSettingsChange: (settings: any) => void;
+  settings: AppSettings | null;
+  onSettingsChange: (settings: AppSettings) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
-  const [localSettings, setLocalSettings] = useState(settings || {
-    theme: 'light',
-    autoStart: false,
-    showNotifications: true,
-    showInDock: false,
-    shortcuts: {
-      toggleWindow: 'CommandOrControl+Shift+Space',
-      quit: 'CommandOrControl+Q'
-    }
-  });
+  const [isLoading, setIsLoading] = useState(!settings);
 
   useEffect(() => {
     if (settings) {
-      setLocalSettings(settings);
+      setIsLoading(false);
     }
   }, [settings]);
 
-  const handleSettingChange = (key: string, value: any) => {
-    const newSettings = { ...localSettings, [key]: value };
-    setLocalSettings(newSettings);
+  const handleSettingChange = async (key: keyof AppSettings, value: any) => {
+    if (!settings) return;
+    
+    const newSettings = { ...settings, [key]: value };
     onSettingsChange(newSettings);
   };
 
   const handleShortcutChange = async (shortcutKey: string, value: string) => {
-    const newSettings = {
-      ...localSettings,
+    if (!settings) return;
+    
+    const newSettings: AppSettings = {
+      ...settings,
       shortcuts: {
-        ...localSettings.shortcuts,
+        ...settings.shortcuts,
         [shortcutKey]: value
       }
     };
-    setLocalSettings(newSettings);
     onSettingsChange(newSettings);
-    
-    // Immediately save shortcuts so they take effect right away
-    try {
-      // @ts-ignore - electron ipc will be available in electron context
-      await window.electronAPI?.saveSettings(newSettings);
-      console.log('Shortcut updated and saved:', shortcutKey, value);
-    } catch (error) {
-      console.error('Error saving shortcut:', error);
-    }
   };
 
-  const handleSaveSettings = async () => {
+  const handleResetSettings = async () => {
     try {
-      // @ts-ignore - electron ipc will be available in electron context
-      await window.electronAPI?.saveSettings(localSettings);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    }
-  };
-
-  const handleResetSettings = () => {
-    const defaultSettings = {
-      theme: 'light',
-      autoStart: false,
-      showNotifications: true,
-      showInDock: false,
-      shortcuts: {
-        toggleWindow: 'CommandOrControl+Shift+Space',
-        quit: 'CommandOrControl+Q'
+      const defaultSettings = await window.electronAPI?.resetSettings();
+      if (defaultSettings) {
+        onSettingsChange(defaultSettings);
       }
-    };
-    setLocalSettings(defaultSettings);
-    onSettingsChange(defaultSettings);
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+    }
   };
+
+  if (isLoading || !settings) {
+    return (
+      <div className="macos-settings">
+        <div className="settings-content">
+          <div className="loading">Loading settings...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="macos-settings">
-      <div className="settings-header">
-        <h1 className="settings-title">Preferences</h1>
-      </div>
-      
       <div className="settings-content">
         {/* Appearance Section */}
         <div className="settings-section">
@@ -101,7 +79,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
               <div className="setting-control">
                 <select
                   className="macos-select"
-                  value={localSettings.theme}
+                  value={settings.theme}
                   onChange={(e) => handleSettingChange('theme', e.target.value)}
                 >
                   <option value="light">Light</option>
@@ -130,7 +108,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 <label className="macos-toggle">
                   <input
                     type="checkbox"
-                    checked={localSettings.autoStart}
+                    checked={settings.autoStart}
                     onChange={(e) => handleSettingChange('autoStart', e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
@@ -147,7 +125,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 <label className="macos-toggle">
                   <input
                     type="checkbox"
-                    checked={localSettings.showNotifications}
+                    checked={settings.showNotifications}
                     onChange={(e) => handleSettingChange('showNotifications', e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
@@ -164,8 +142,25 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 <label className="macos-toggle">
                   <input
                     type="checkbox"
-                    checked={localSettings.showInDock}
+                    checked={settings.showInDock}
                     onChange={(e) => handleSettingChange('showInDock', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            
+            <div className="setting-row">
+              <div className="setting-info">
+                <label className="setting-label">Hide when focus is lost</label>
+                <p className="setting-description">Automatically hide window when clicking elsewhere</p>
+              </div>
+              <div className="setting-control">
+                <label className="macos-toggle">
+                  <input
+                    type="checkbox"
+                    checked={settings.hideOnBlur}
+                    onChange={(e) => handleSettingChange('hideOnBlur', e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
                 </label>
@@ -190,7 +185,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
               </div>
               <div className="setting-control">
                 <ShortcutRecorder
-                  value={localSettings.shortcuts?.toggleWindow || ''}
+                  value={settings.shortcuts?.toggleWindow || ''}
                   onChange={(shortcut) => handleShortcutChange('toggleWindow', shortcut)}
                   placeholder="Click to record shortcut"
                 />
@@ -204,7 +199,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
               </div>
               <div className="setting-control">
                 <ShortcutRecorder
-                  value={localSettings.shortcuts?.quit || ''}
+                  value={settings.shortcuts?.quit || ''}
                   onChange={(shortcut) => handleShortcutChange('quit', shortcut)}
                   placeholder="Click to record shortcut"
                 />

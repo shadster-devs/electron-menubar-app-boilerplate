@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Minimize2 } from 'lucide-react';
+import { Settings, Minimize2, ArrowLeft } from 'lucide-react';
 import './Header.css';
 
 interface HeaderProps {
@@ -17,18 +17,32 @@ const Header: React.FC<HeaderProps> = ({ currentTab, onTabChange }) => {
 
   return (
     <div className="header">
-      <div className="header-title">
-        <h1>Menubar App</h1>
+      <div className="header-left">
+        {currentTab === 'settings' && (
+          <button
+            className="back-button"
+            onClick={() => onTabChange('home')}
+            title="Back"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        )}
       </div>
       
-      <div className="header-controls">
-        <button
-          className={`settings-button ${currentTab === 'settings' ? 'active' : ''}`}
-          onClick={() => onTabChange(currentTab === 'settings' ? 'home' : 'settings')}
-          title="Settings"
-        >
-          <Settings size={16} />
-        </button>
+      <div className="header-title">
+        <h1>{currentTab === 'settings' ? 'Preferences' : 'Menubar App'}</h1>
+      </div>
+      
+      <div className="header-right">
+        {currentTab === 'home' && (
+          <button
+            className="settings-button"
+            onClick={() => onTabChange('settings')}
+            title="Settings"
+          >
+            <Settings size={16} />
+          </button>
+        )}
         <button className="minimize-button" onClick={handleMinimize} title="Minimize">
           <Minimize2 size={16} />
         </button>
