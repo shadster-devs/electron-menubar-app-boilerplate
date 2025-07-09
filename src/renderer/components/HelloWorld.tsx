@@ -26,7 +26,7 @@ const HelloWorld: React.FC = () => {
       <p>
         <strong>Features:</strong>
       </p>
-      <ul style={{ textAlign: 'left', display: 'inline-block' }}>
+      <ul>
         <li>✨ Electron menubar integration</li>
         <li>⚛️ React with TypeScript</li>
         <li>🎨 Modern, clean UI</li>

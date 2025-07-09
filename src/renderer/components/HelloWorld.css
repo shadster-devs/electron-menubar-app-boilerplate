@@ -23,3 +23,35 @@
   margin-bottom: 20px;
   border-left: 4px solid var(--accent-primary);
 }
+
+.hello-world ul {
+  color: var(--text-secondary);
+  text-align: left;
+  display: inline-block;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.hello-world li {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.hello-world code {
+  background-color: var(--background-tertiary);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  border: 1px solid var(--border-primary);
+}
+
+.hello-world strong {
+  color: var(--text-primary);
+}
+
+.hello-world small {
+  color: var(--text-muted);
+}
