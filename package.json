@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
@@ -65,8 +65,8 @@
     "react-dom": "^18.2.0"
   },
   "build": {
-    "appId": "com.example.menubar-app",
-    "productName": "Menubar App",
+    "appId": "com.shadster-devs.menubar-app",
+    "productName": "Menubar.App",
     "copyright": "Copyright © 2025 shadster-devs",
     "directories": {
       "buildResources": "assets",
