@@ -104,7 +104,7 @@ export class ContextMenuManager {
     try {
       // Send check for updates request to all windows
       const windows = BrowserWindow.getAllWindows();
-      windows.forEach((window) => {
+      windows.forEach(window => {
         window.webContents.send('context-menu:check-for-updates');
       });
     } catch (error) {

@@ -208,7 +208,9 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
           <div className='section-content'>
             <div className='setting-row'>
               <div className='setting-info'>
-                <label className='setting-label'>Auto check, download and install</label>
+                <label className='setting-label'>
+                  Auto check, download and install
+                </label>
                 <p className='setting-description'>
                   Automatically check for updates and install them
                 </p>

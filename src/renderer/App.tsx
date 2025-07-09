@@ -24,7 +24,7 @@ const App: React.FC = () => {
         window.electronAPI?.checkForUpdates();
       } else if (event.data.type === 'updater:status') {
         setUpdateStatus(event.data.status);
-        
+        console.log('Update status:', updateStatus);
         // Show notification when update is downloaded
         if (event.data.status.downloaded && !event.data.status.error) {
           showUpdateNotification(event.data.status.updateInfo);
@@ -133,9 +133,9 @@ const App: React.FC = () => {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 10 seconds
     setTimeout(() => {
       if (notification.parentElement) {
