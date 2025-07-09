@@ -12,12 +12,41 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   const [isLoading, setIsLoading] = useState(!settings);
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<string>('');
 
   useEffect(() => {
     if (settings) {
       setIsLoading(false);
     }
   }, [settings]);
+
+  useEffect(() => {
+    // Listen for update status messages
+    const handleUpdateStatus = (event: MessageEvent) => {
+      if (event.data.type === 'updater:status') {
+        const status = event.data.status;
+        if (status.checking) {
+          setIsCheckingForUpdates(true);
+          setUpdateStatus('Checking for updates...');
+        } else if (status.error) {
+          setIsCheckingForUpdates(false);
+          setUpdateStatus(`Error: ${status.error}`);
+        } else if (status.available) {
+          setIsCheckingForUpdates(false);
+          setUpdateStatus(`Update available: v${status.updateInfo?.version}`);
+        } else {
+          setIsCheckingForUpdates(false);
+          setUpdateStatus('You have the latest version');
+        }
+
+        // Clear status after 5 seconds
+        setTimeout(() => setUpdateStatus(''), 5000);
+      }
+    };
+
+    window.addEventListener('message', handleUpdateStatus);
+    return () => window.removeEventListener('message', handleUpdateStatus);
+  }, []);
 
   const handleSettingChange = async (key: keyof AppSettings, value: any) => {
     if (!settings) return;
@@ -52,13 +81,19 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
 
   const handleCheckForUpdates = async () => {
     setIsCheckingForUpdates(true);
+    setUpdateStatus('Starting update check...');
+
     try {
+      console.log('UI: Triggering update check...');
       await window.electronAPI?.checkForUpdates();
+      console.log('UI: Update check request sent');
     } catch (error) {
       console.error('Error checking for updates:', error);
-    } finally {
       setIsCheckingForUpdates(false);
+      setUpdateStatus(`Error: ${error}`);
     }
+    // Note: We don't set setIsCheckingForUpdates(false) here because
+    // it will be handled by the status listener
   };
 
   if (isLoading || !settings) {
@@ -238,6 +273,20 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 <p className='setting-description'>
                   Manually check for available updates
                 </p>
+                {updateStatus && (
+                  <p
+                    style={{
+                      color: updateStatus.includes('Error')
+                        ? 'var(--text-danger, #ff4444)'
+                        : 'var(--accent-primary)',
+                      fontSize: '12px',
+                      marginTop: '4px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {updateStatus}
+                  </p>
+                )}
               </div>
               <div className='setting-control'>
                 <button

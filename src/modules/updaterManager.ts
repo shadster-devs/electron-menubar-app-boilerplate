@@ -159,10 +159,20 @@ export class UpdaterManager {
 
   // Public methods
   async checkForUpdates(): Promise<void> {
+    console.log('Manual update check triggered');
+
+    // Set checking status immediately for UI feedback
+    this.updateStatus.checking = true;
+    this.updateStatus.error = undefined;
+    this.sendStatusToRenderer();
+
     try {
-      await autoUpdater.checkForUpdatesAndNotify();
+      console.log('Calling autoUpdater.checkForUpdatesAndNotify()...');
+      const result = await autoUpdater.checkForUpdatesAndNotify();
+      console.log('Update check result:', result);
     } catch (error) {
       console.error('Error checking for updates:', error);
+      this.updateStatus.checking = false;
       this.updateStatus.error =
         error instanceof Error ? error.message : 'Unknown error';
       this.sendStatusToRenderer();
