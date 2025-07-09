@@ -59,9 +59,15 @@ jobs:
         run: npm ci
 
       - name: Build and Package macOS App
-        run: npm run dist:mac
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "Publishing build because this is a tag."
+            GH_TOKEN=${{ secrets.GH_TOKEN }} npm run dist:mac
+          else
+            echo "Building without publishing (not a tag)."
+            npm run dist:mac
+          fi
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload macOS artifacts
