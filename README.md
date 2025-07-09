@@ -44,8 +44,8 @@ A clean, modular, production-ready Electron menubar application built with React
    ```
 
 3. **Code quality checks:**
-   ```bash
-   npm run lint:check    # Check linting
+   ```bash 
+   npm run lint:check    # Check linting 
    npm run format:check  # Check formatting
    npm run type-check    # TypeScript validation
    ```
