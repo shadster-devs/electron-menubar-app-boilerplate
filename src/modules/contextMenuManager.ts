@@ -1,4 +1,4 @@
-import { Menu, app, MenuItemConstructorOptions } from 'electron';
+import { Menu, app, MenuItemConstructorOptions, BrowserWindow } from 'electron';
 
 type ClickBehavior = 'right-only' | 'left-and-right' | 'left-only';
 
@@ -38,6 +38,11 @@ export class ContextMenuManager {
       {
         label: 'Show/Hide',
         click: () => this.toggleWindow(),
+      },
+      { type: 'separator' },
+      {
+        label: 'Check for Updates',
+        click: () => this.checkForUpdates(),
       },
       { type: 'separator' },
       {
@@ -92,6 +97,18 @@ export class ContextMenuManager {
       this.quitCallback();
     } else {
       app.quit();
+    }
+  }
+
+  private async checkForUpdates(): Promise<void> {
+    try {
+      // Send check for updates request to all windows
+      const windows = BrowserWindow.getAllWindows();
+      windows.forEach((window) => {
+        window.webContents.send('context-menu:check-for-updates');
+      });
+    } catch (error) {
+      console.error('Error triggering update check:', error);
     }
   }
 

@@ -14,6 +14,9 @@ export interface AppSettings {
     width: number;
     height: number;
   };
+  updater: {
+    autoCheckDownloadAndInstall: boolean;
+  };
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -29,6 +32,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   window: {
     width: 400,
     height: 500,
+  },
+  updater: {
+    autoCheckDownloadAndInstall: true,
   },
 };
 
@@ -53,4 +59,10 @@ export interface ElectronAPI {
   // Legacy aliases for backward compatibility
   quitApp: () => Promise<boolean>;
   hideWindow: () => Promise<boolean>;
+
+  // Updater API
+  checkForUpdates: () => Promise<void>;
+  downloadUpdate: () => Promise<void>;
+  installUpdate: () => Promise<void>;
+  getUpdateStatus: () => Promise<any>;
 }

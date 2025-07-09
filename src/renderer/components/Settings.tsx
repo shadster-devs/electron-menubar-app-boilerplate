@@ -1,4 +1,4 @@
-import { Palette, Settings2, Keyboard } from 'lucide-react';
+import { Palette, Settings2, Keyboard, Download } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import type { AppSettings } from '../../shared/constants';
 import ShortcutRecorder from './ShortcutRecorder';
@@ -11,6 +11,7 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   const [isLoading, setIsLoading] = useState(!settings);
+  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -46,6 +47,17 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
       }
     } catch (error) {
       console.error('Error resetting settings:', error);
+    }
+  };
+
+  const handleCheckForUpdates = async () => {
+    setIsCheckingForUpdates(true);
+    try {
+      await window.electronAPI?.checkForUpdates();
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+    } finally {
+      setIsCheckingForUpdates(false);
     }
   };
 
@@ -180,6 +192,59 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                   />
                   <span className='toggle-slider'></span>
                 </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Updates Section */}
+        <div className='settings-section'>
+          <div className='section-header'>
+            <div className='section-icon'>
+              <Download size={16} />
+            </div>
+            <h2 className='section-title'>Updates</h2>
+          </div>
+          <div className='section-content'>
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Auto check, download and install</label>
+                <p className='setting-description'>
+                  Automatically check for updates and install them
+                </p>
+              </div>
+              <div className='setting-control'>
+                <label className='macos-toggle'>
+                  <input
+                    type='checkbox'
+                    checked={settings.updater?.autoCheckDownloadAndInstall}
+                    onChange={e =>
+                      handleSettingChange('updater', {
+                        ...settings.updater,
+                        autoCheckDownloadAndInstall: e.target.checked,
+                      })
+                    }
+                  />
+                  <span className='toggle-slider'></span>
+                </label>
+              </div>
+            </div>
+
+            <div className='setting-row'>
+              <div className='setting-info'>
+                <label className='setting-label'>Check for updates</label>
+                <p className='setting-description'>
+                  Manually check for available updates
+                </p>
+              </div>
+              <div className='setting-control'>
+                <button
+                  className='macos-button primary'
+                  onClick={handleCheckForUpdates}
+                  disabled={isCheckingForUpdates}
+                >
+                  {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
+                </button>
               </div>
             </div>
           </div>

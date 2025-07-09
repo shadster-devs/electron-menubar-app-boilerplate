@@ -6,6 +6,7 @@ import {
   ShortcutManager,
   ContextMenuManager,
   IPCManager,
+  UpdaterManager,
 } from './modules';
 
 class MenubarApp {
@@ -14,6 +15,7 @@ class MenubarApp {
   private shortcutManager!: ShortcutManager;
   private contextMenuManager!: ContextMenuManager;
   private ipcManager!: IPCManager;
+  private updaterManager!: UpdaterManager;
   private isQuitting: boolean = false;
 
   constructor() {
@@ -38,11 +40,13 @@ class MenubarApp {
     // Initialize core modules
     this.settingsManager = new SettingsManager();
     this.shortcutManager = new ShortcutManager();
+    this.updaterManager = new UpdaterManager(this.settingsManager);
 
     // Initialize IPC manager with dependencies
     this.ipcManager = new IPCManager(
       this.settingsManager,
       this.shortcutManager,
+      this.updaterManager,
       () => this.quitApp()
     );
 

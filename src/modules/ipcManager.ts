@@ -1,20 +1,24 @@
 import { ipcMain, BrowserWindow, app } from 'electron';
 import { SettingsManager } from './settingsManager';
 import { ShortcutManager, ShortcutCallbacks } from './shortcutManager';
+import { UpdaterManager } from './updaterManager';
 
 export class IPCManager {
   private readonly settingsManager: SettingsManager;
   private readonly shortcutManager: ShortcutManager;
+  private readonly updaterManager: UpdaterManager;
   private shortcutCallbacks: ShortcutCallbacks | null = null;
   private readonly quitCallback?: () => void;
 
   constructor(
     settingsManager: SettingsManager,
     shortcutManager: ShortcutManager,
+    updaterManager: UpdaterManager,
     quitCallback?: () => void
   ) {
     this.settingsManager = settingsManager;
     this.shortcutManager = shortcutManager;
+    this.updaterManager = updaterManager;
     this.quitCallback = quitCallback;
     this.initialize();
   }
@@ -27,6 +31,7 @@ export class IPCManager {
     this.setupSettingsHandlers();
     this.setupShortcutHandlers();
     this.setupAppHandlers();
+    this.setupUpdaterHandlers();
     console.log('IPC handlers initialized');
   }
 
@@ -130,6 +135,9 @@ export class IPCManager {
     ) {
       this.handleDockVisibility(settings.showInDock);
     }
+
+    // Update updater settings
+    this.updaterManager.updateSettings();
   }
 
   private setupShortcutHandlers(): void {
@@ -209,6 +217,47 @@ export class IPCManager {
 
     ipcMain.handle('app:getPlatform', async () => {
       return process.platform;
+    });
+  }
+
+  private setupUpdaterHandlers(): void {
+    ipcMain.handle('updater:checkForUpdates', async () => {
+      try {
+        await this.updaterManager.checkForUpdates();
+        return true;
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('updater:downloadUpdate', async () => {
+      try {
+        await this.updaterManager.downloadUpdate();
+        return true;
+      } catch (error) {
+        console.error('Error downloading update:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('updater:installUpdate', async () => {
+      try {
+        this.updaterManager.installUpdate();
+        return true;
+      } catch (error) {
+        console.error('Error installing update:', error);
+        return false;
+      }
+    });
+
+    ipcMain.handle('updater:getStatus', async () => {
+      try {
+        return this.updaterManager.getUpdateStatus();
+      } catch (error) {
+        console.error('Error getting update status:', error);
+        return null;
+      }
     });
   }
 

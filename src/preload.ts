@@ -32,9 +32,27 @@ const electronAPI: ElectronAPI = {
   // Legacy aliases for backward compatibility
   quitApp: () => ipcRenderer.invoke('app:close'),
   hideWindow: () => ipcRenderer.invoke('app:hide'),
+
+  // Updater API
+  checkForUpdates: () => ipcRenderer.invoke('updater:checkForUpdates'),
+  downloadUpdate: () => ipcRenderer.invoke('updater:downloadUpdate'),
+  installUpdate: () => ipcRenderer.invoke('updater:installUpdate'),
+  getUpdateStatus: () => ipcRenderer.invoke('updater:getStatus'),
 };
 
 // Expose the API to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
+
+// Add listener for updater status events
+ipcRenderer.on('updater:status', (event, status) => {
+  // Forward the status to the renderer via custom event
+  window.postMessage({ type: 'updater:status', status }, '*');
+});
+
+// Add listener for context menu check for updates events
+ipcRenderer.on('context-menu:check-for-updates', () => {
+  // Forward the event to the renderer via custom event
+  window.postMessage({ type: 'context-menu:check-for-updates' }, '*');
+});
 
 console.log('Preload script loaded successfully');
