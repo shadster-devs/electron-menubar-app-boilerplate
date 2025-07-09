@@ -65,7 +65,7 @@
     "react-dom": "^18.2.0"
   },
   "build": {
-    "appId": "com.shadster-devs.menubar-app",
+    "appId": "com.example.menubar-app",
     "productName": "Menubar.App",
     "copyright": "Copyright © 2025 shadster-devs",
     "directories": {
