@@ -65,7 +65,7 @@ jobs:
             GH_TOKEN=${{ secrets.GH_TOKEN }} npm run dist:mac
           else
             echo "Building without publishing (not a tag)."
-            npm run dist:mac
+            npm run build
           fi
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false

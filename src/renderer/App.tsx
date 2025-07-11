@@ -13,6 +13,31 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [updateStatus, setUpdateStatus] = useState<any>(null);
+  const [toastContainer, setToastContainer] = useState<HTMLDivElement | null>(null);
+
+  // Create toast container on mount
+  useEffect(() => {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10000;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    `;
+    document.body.appendChild(container);
+    setToastContainer(container);
+
+    return () => {
+      if (container.parentElement) {
+        container.remove();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Load settings on app start
@@ -23,8 +48,26 @@ const App: React.FC = () => {
       if (event.data.type === 'context-menu:check-for-updates') {
         window.electronAPI?.checkForUpdates();
       } else if (event.data.type === 'updater:status') {
+        const prevStatus = updateStatus;
         setUpdateStatus(event.data.status);
-        console.log('Update status:', updateStatus);
+        console.log('Update status:', event.data.status);
+        
+        // Show toast when checking starts
+        if (event.data.status.checking && (!prevStatus || !prevStatus.checking)) {
+          showToast('Checking for updates...', 'info');
+        }
+        
+        // Show toast when no update is available
+        if (!event.data.status.checking && !event.data.status.available && 
+            prevStatus && prevStatus.checking && !event.data.status.error) {
+          showToast('No updates available', 'success');
+        }
+        
+        // Show toast for errors
+        if (event.data.status.error && (!prevStatus || !prevStatus.error)) {
+          showToast(`Update error: ${event.data.status.error}`, 'error');
+        }
+        
         // Show notification when update is downloaded
         if (event.data.status.downloaded && !event.data.status.error) {
           showUpdateNotification(event.data.status.updateInfo);
@@ -37,7 +80,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('message', handleMessages);
     };
-  }, []);
+  }, [updateStatus]);
 
   // Apply theme to document element whenever settings change
   useEffect(() => {
@@ -80,6 +123,91 @@ const App: React.FC = () => {
       console.error('Error saving settings:', error);
       // Reload settings on error to ensure UI reflects actual stored state
       loadSettings();
+    }
+  };
+
+  const showToast = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    if (!toastContainer) return;
+    
+    const toast = document.createElement('div');
+    const toastId = `toast-${Date.now()}-${Math.random()}`;
+    toast.id = toastId;
+    
+    const getToastColor = () => {
+      switch (type) {
+        case 'success': return 'var(--success-color, #10b981)';
+        case 'error': return 'var(--error-color, #ef4444)';
+        default: return 'var(--accent-primary)';
+      }
+    };
+    
+    toast.innerHTML = `
+      <div style="
+        background: var(--background-secondary);
+        border: 1px solid var(--border-primary);
+        border-left: 4px solid ${getToastColor()};
+        border-radius: 8px;
+        padding: 12px 16px;
+        box-shadow: 0 4px 16px var(--shadow-medium);
+        max-width: 300px;
+        animation: slideIn 0.3s ease-out;
+        pointer-events: auto;
+        transform: translateX(100%);
+        opacity: 0;
+      ">
+        <p style="margin: 0; font-size: 13px; color: var(--text-primary);">
+          ${message}
+        </p>
+      </div>
+    `;
+
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Trigger entrance animation
+    requestAnimationFrame(() => {
+      const toastElement = toast.querySelector('div') as HTMLElement;
+      if (toastElement) {
+        toastElement.style.transform = 'translateX(0)';
+        toastElement.style.opacity = '1';
+        toastElement.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+      }
+    });
+
+    // Auto-remove after 3 seconds
+    const removeToast = () => {
+      const toastElement = toast.querySelector('div') as HTMLElement;
+      if (toastElement) {
+        toastElement.style.transform = 'translateX(100%)';
+        toastElement.style.opacity = '0';
+        toastElement.style.transition = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+        
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 300);
+      }
+    };
+
+    setTimeout(removeToast, 3000);
+    
+    // Limit number of toasts (remove oldest if too many)
+    const allToasts = toastContainer.children;
+    if (allToasts.length > 5) {
+      const oldestToast = allToasts[0];
+      if (oldestToast) {
+        const oldestToastElement = oldestToast.querySelector('div') as HTMLElement;
+        if (oldestToastElement) {
+          oldestToastElement.style.transform = 'translateX(100%)';
+          oldestToastElement.style.opacity = '0';
+          setTimeout(() => {
+            if (oldestToast.parentElement) {
+              oldestToast.remove();
+            }
+          }, 300);
+        }
+      }
     }
   };
 

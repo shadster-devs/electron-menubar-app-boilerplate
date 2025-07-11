@@ -10,37 +10,59 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
-  const [isLoading, setIsLoading] = useState(!settings);
+  const [isLoading, setIsLoading] = useState(false);
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<string>('');
+  const [updateProgress, setUpdateProgress] = useState<number>(0);
+  const [currentUpdateInfo, setCurrentUpdateInfo] = useState<any>(null);
 
   useEffect(() => {
-    if (settings) {
-      setIsLoading(false);
-    }
-  }, [settings]);
-
-  useEffect(() => {
-    // Listen for update status messages
     const handleUpdateStatus = (event: MessageEvent) => {
       if (event.data.type === 'updater:status') {
         const status = event.data.status;
-        if (status.checking) {
-          setIsCheckingForUpdates(true);
-          setUpdateStatus('Checking for updates...');
-        } else if (status.error) {
-          setIsCheckingForUpdates(false);
-          setUpdateStatus(`Error: ${status.error}`);
-        } else if (status.available) {
-          setIsCheckingForUpdates(false);
-          setUpdateStatus(`Update available: v${status.updateInfo?.version}`);
-        } else {
-          setIsCheckingForUpdates(false);
-          setUpdateStatus('You have the latest version');
+        console.log('Settings received update status:', status);
+        
+        // Update checking state
+        setIsCheckingForUpdates(status.checking);
+        
+        // Update progress
+        if (status.progress !== undefined) {
+          setUpdateProgress(status.progress);
         }
-
-        // Clear status after 5 seconds
-        setTimeout(() => setUpdateStatus(''), 5000);
+        
+        // Update info
+        if (status.updateInfo) {
+          setCurrentUpdateInfo(status.updateInfo);
+        }
+        
+        // Update status text
+        if (status.checking) {
+          if (status.retryCount && status.retryCount > 0) {
+            setUpdateStatus(`Checking for updates... (Retry ${status.retryCount}/3)`);
+          } else {
+            setUpdateStatus('Checking for updates...');
+          }
+        } else if (status.downloading) {
+          setUpdateStatus(`Downloading update... ${status.progress || 0}%`);
+        } else if (status.downloaded) {
+          setUpdateStatus(`Update downloaded: v${status.updateInfo?.version || 'Unknown'}`);
+        } else if (status.available) {
+          setUpdateStatus(`Update available: v${status.updateInfo?.version || 'Unknown'}`);
+        } else if (status.error) {
+          if (status.error.includes('Retrying')) {
+            setUpdateStatus(status.error);
+          } else if (status.error.includes('No network')) {
+            setUpdateStatus('No internet connection');
+          } else if (status.error.includes('timed out')) {
+            setUpdateStatus('Update check timed out');
+          } else {
+            setUpdateStatus(`Error: ${status.error}`);
+          }
+        } else if (!status.available && !status.error) {
+          setUpdateStatus('No updates available');
+          // Clear status after 3 seconds
+          setTimeout(() => setUpdateStatus(''), 3000);
+        }
       }
     };
 
@@ -52,27 +74,22 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     if (!settings) return;
 
     const newSettings = { ...settings, [key]: value };
-    onSettingsChange(newSettings);
+    await onSettingsChange(newSettings);
   };
 
   const handleShortcutChange = async (shortcutKey: string, value: string) => {
-    if (!settings) return;
+    if (!settings?.shortcuts) return;
 
-    const newSettings: AppSettings = {
-      ...settings,
-      shortcuts: {
-        ...settings.shortcuts,
-        [shortcutKey]: value,
-      },
-    };
-    onSettingsChange(newSettings);
+    const newShortcuts = { ...settings.shortcuts, [shortcutKey]: value };
+    const newSettings = { ...settings, shortcuts: newShortcuts };
+    await onSettingsChange(newSettings);
   };
 
   const handleResetSettings = async () => {
     try {
       const defaultSettings = await window.electronAPI?.resetSettings();
       if (defaultSettings) {
-        onSettingsChange(defaultSettings);
+        await onSettingsChange(defaultSettings);
       }
     } catch (error) {
       console.error('Error resetting settings:', error);
@@ -82,6 +99,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   const handleCheckForUpdates = async () => {
     setIsCheckingForUpdates(true);
     setUpdateStatus('Starting update check...');
+    setUpdateProgress(0);
 
     try {
       console.log('UI: Triggering update check...');
@@ -94,6 +112,88 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     }
     // Note: We don't set setIsCheckingForUpdates(false) here because
     // it will be handled by the status listener
+  };
+
+  const handleDownloadUpdate = async () => {
+    try {
+      await window.electronAPI?.downloadUpdate();
+    } catch (error) {
+      console.error('Error downloading update:', error);
+      setUpdateStatus(`Download failed: ${error}`);
+    }
+  };
+
+  const renderUpdateProgress = () => {
+    if (!isCheckingForUpdates && updateProgress === 0) return null;
+    
+    return (
+      <div style={{
+        marginTop: '8px',
+        background: 'var(--background-tertiary)',
+        borderRadius: '6px',
+        padding: '8px',
+        border: '1px solid var(--border-primary)'
+      }}>
+        <div style={{
+          width: '100%',
+          height: '4px',
+          background: 'var(--border-light)',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${updateProgress}%`,
+            height: '100%',
+            background: 'var(--accent-primary)',
+            borderRadius: '2px',
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+        <div style={{
+          fontSize: '11px',
+          color: 'var(--text-secondary)',
+          marginTop: '4px',
+          textAlign: 'center'
+        }}>
+          {updateProgress}% complete
+        </div>
+      </div>
+    );
+  };
+
+  const renderReleaseNotes = () => {
+    if (!currentUpdateInfo?.releaseNotes?.length) return null;
+    
+    return (
+      <div style={{
+        marginTop: '8px',
+        background: 'var(--background-tertiary)',
+        borderRadius: '6px',
+        padding: '8px',
+        border: '1px solid var(--border-primary)',
+        maxHeight: '120px',
+        overflowY: 'auto'
+      }}>
+        <div style={{
+          fontSize: '11px',
+          fontWeight: 'bold',
+          color: 'var(--text-primary)',
+          marginBottom: '4px'
+        }}>
+          What's New in v{currentUpdateInfo.version}:
+        </div>
+        {currentUpdateInfo.releaseNotes.map((note: string, index: number) => (
+          <div key={index} style={{
+            fontSize: '11px',
+            color: 'var(--text-secondary)',
+            marginBottom: '2px',
+            lineHeight: '1.3'
+          }}>
+            • {note}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (isLoading || !settings) {
@@ -287,6 +387,8 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                     {updateStatus}
                   </p>
                 )}
+                {renderUpdateProgress()}
+                {renderReleaseNotes()}
               </div>
               <div className='setting-control'>
                 <button
@@ -296,6 +398,24 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 >
                   {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
                 </button>
+                                 {!isCheckingForUpdates && updateStatus.includes('Error') && (
+                   <button
+                     className='macos-button secondary'
+                     onClick={handleCheckForUpdates}
+                     style={{ marginLeft: '8px' }}
+                   >
+                     Retry
+                   </button>
+                 )}
+                 {!isCheckingForUpdates && updateStatus.includes('available') && (
+                   <button
+                     className='macos-button secondary'
+                     onClick={handleDownloadUpdate}
+                     style={{ marginLeft: '8px' }}
+                   >
+                     Download
+                   </button>
+                 )}
               </div>
             </div>
           </div>

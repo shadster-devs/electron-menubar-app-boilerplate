@@ -17,6 +17,7 @@ export interface AppSettings {
   updater: {
     autoCheckDownloadAndInstall: boolean;
   };
+  lastUpdateCheck?: number; // Timestamp of last update check
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   updater: {
     autoCheckDownloadAndInstall: true,
   },
+  lastUpdateCheck: 0,
 };
 
 export interface ElectronAPI {

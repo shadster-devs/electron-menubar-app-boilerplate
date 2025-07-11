@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
@@ -80,6 +80,7 @@
       "main": "dist/main.js"
     },
     "mac": {
+      "icon": "assets/icons/app-icon.png",
       "category": "public.app-category.productivity",
       "target": [
         {

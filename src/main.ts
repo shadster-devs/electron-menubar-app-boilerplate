@@ -37,20 +37,41 @@ class MenubarApp {
   }
 
   private initializeModules(): void {
-    // Initialize core modules
-    this.settingsManager = new SettingsManager();
-    this.shortcutManager = new ShortcutManager();
-    this.updaterManager = new UpdaterManager(this.settingsManager);
+    try {
+      // Initialize core modules
+      this.settingsManager = new SettingsManager();
+      this.shortcutManager = new ShortcutManager();
+      
+      // Initialize updater with error handling
+      try {
+        this.updaterManager = new UpdaterManager(this.settingsManager);
+        console.log('UpdaterManager initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize UpdaterManager:', error);
+        // Create a dummy updater manager that does nothing
+        this.updaterManager = {
+          checkForUpdates: async () => console.warn('UpdaterManager not available'),
+          downloadUpdate: async () => console.warn('UpdaterManager not available'),
+          installUpdate: () => console.warn('UpdaterManager not available'),
+          getUpdateStatus: () => ({ checking: false, available: false, downloading: false, downloaded: false }),
+          updateSettings: async () => {},
+          cleanup: () => {},
+        } as any;
+      }
 
-    // Initialize IPC manager with dependencies
-    this.ipcManager = new IPCManager(
-      this.settingsManager,
-      this.shortcutManager,
-      this.updaterManager,
-      () => this.quitApp()
-    );
+      // Initialize IPC manager with dependencies
+      this.ipcManager = new IPCManager(
+        this.settingsManager,
+        this.shortcutManager,
+        this.updaterManager,
+        () => this.quitApp()
+      );
 
-    console.log('Core modules initialized');
+      console.log('Core modules initialized');
+    } catch (error) {
+      console.error('Critical error initializing core modules:', error);
+      // Continue without updater functionality
+    }
   }
 
   private async setupMenubar(): Promise<void> {
@@ -59,6 +80,7 @@ class MenubarApp {
 
     this.menubar = menubar({
       index: `file://${path.join(__dirname, 'renderer', 'index.html')}`,
+      icon: path.join(__dirname, '..', 'assets', 'icons', 'menubar-icon.png'),
       preloadWindow: true,
       showOnAllWorkspaces: true,
       windowPosition: 'trayCenter',
