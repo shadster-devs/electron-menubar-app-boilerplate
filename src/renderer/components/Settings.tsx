@@ -10,7 +10,6 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
-  const [isLoading, setIsLoading] = useState(false);
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<string>('');
   const [updateProgress, setUpdateProgress] = useState<number>(0);
@@ -21,33 +20,39 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
       if (event.data.type === 'updater:status') {
         const status = event.data.status;
         console.log('Settings received update status:', status);
-        
+
         // Update checking state
         setIsCheckingForUpdates(status.checking);
-        
+
         // Update progress
         if (status.progress !== undefined) {
           setUpdateProgress(status.progress);
         }
-        
+
         // Update info
         if (status.updateInfo) {
           setCurrentUpdateInfo(status.updateInfo);
         }
-        
+
         // Update status text
         if (status.checking) {
           if (status.retryCount && status.retryCount > 0) {
-            setUpdateStatus(`Checking for updates... (Retry ${status.retryCount}/3)`);
+            setUpdateStatus(
+              `Checking for updates... (Retry ${status.retryCount}/3)`
+            );
           } else {
             setUpdateStatus('Checking for updates...');
           }
         } else if (status.downloading) {
           setUpdateStatus(`Downloading update... ${status.progress || 0}%`);
         } else if (status.downloaded) {
-          setUpdateStatus(`Update downloaded: v${status.updateInfo?.version || 'Unknown'}`);
+          setUpdateStatus(
+            `Update downloaded: v${status.updateInfo?.version || 'Unknown'}`
+          );
         } else if (status.available) {
-          setUpdateStatus(`Update available: v${status.updateInfo?.version || 'Unknown'}`);
+          setUpdateStatus(
+            `Update available: v${status.updateInfo?.version || 'Unknown'}`
+          );
         } else if (status.error) {
           if (status.error.includes('Retrying')) {
             setUpdateStatus(status.error);
@@ -125,36 +130,44 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
 
   const renderUpdateProgress = () => {
     if (!isCheckingForUpdates && updateProgress === 0) return null;
-    
+
     return (
-      <div style={{
-        marginTop: '8px',
-        background: 'var(--background-tertiary)',
-        borderRadius: '6px',
-        padding: '8px',
-        border: '1px solid var(--border-primary)'
-      }}>
-        <div style={{
-          width: '100%',
-          height: '4px',
-          background: 'var(--border-light)',
-          borderRadius: '2px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${updateProgress}%`,
-            height: '100%',
-            background: 'var(--accent-primary)',
+      <div
+        style={{
+          marginTop: '8px',
+          background: 'var(--background-tertiary)',
+          borderRadius: '6px',
+          padding: '8px',
+          border: '1px solid var(--border-primary)',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            height: '4px',
+            background: 'var(--border-light)',
             borderRadius: '2px',
-            transition: 'width 0.3s ease'
-          }} />
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: `${updateProgress}%`,
+              height: '100%',
+              background: 'var(--accent-primary)',
+              borderRadius: '2px',
+              transition: 'width 0.3s ease',
+            }}
+          />
         </div>
-        <div style={{
-          fontSize: '11px',
-          color: 'var(--text-secondary)',
-          marginTop: '4px',
-          textAlign: 'center'
-        }}>
+        <div
+          style={{
+            fontSize: '11px',
+            color: 'var(--text-secondary)',
+            marginTop: '4px',
+            textAlign: 'center',
+          }}
+        >
           {updateProgress}% complete
         </div>
       </div>
@@ -163,32 +176,39 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
 
   const renderReleaseNotes = () => {
     if (!currentUpdateInfo?.releaseNotes?.length) return null;
-    
+
     return (
-      <div style={{
-        marginTop: '8px',
-        background: 'var(--background-tertiary)',
-        borderRadius: '6px',
-        padding: '8px',
-        border: '1px solid var(--border-primary)',
-        maxHeight: '120px',
-        overflowY: 'auto'
-      }}>
-        <div style={{
-          fontSize: '11px',
-          fontWeight: 'bold',
-          color: 'var(--text-primary)',
-          marginBottom: '4px'
-        }}>
-          What's New in v{currentUpdateInfo.version}:
+      <div
+        style={{
+          marginTop: '8px',
+          background: 'var(--background-tertiary)',
+          borderRadius: '6px',
+          padding: '8px',
+          border: '1px solid var(--border-primary)',
+          maxHeight: '120px',
+          overflowY: 'auto',
+        }}
+      >
+        <div
+          style={{
+            fontSize: '11px',
+            fontWeight: 'bold',
+            color: 'var(--text-primary)',
+            marginBottom: '4px',
+          }}
+        >
+          What&apos;s New in v{currentUpdateInfo.version}:
         </div>
         {currentUpdateInfo.releaseNotes.map((note: string, index: number) => (
-          <div key={index} style={{
-            fontSize: '11px',
-            color: 'var(--text-secondary)',
-            marginBottom: '2px',
-            lineHeight: '1.3'
-          }}>
+          <div
+            key={index}
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-secondary)',
+              marginBottom: '2px',
+              lineHeight: '1.3',
+            }}
+          >
             • {note}
           </div>
         ))}
@@ -196,7 +216,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     );
   };
 
-  if (isLoading || !settings) {
+  if (!settings) {
     return (
       <div className='macos-settings'>
         <div className='settings-content'>
@@ -398,24 +418,25 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 >
                   {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
                 </button>
-                                 {!isCheckingForUpdates && updateStatus.includes('Error') && (
-                   <button
-                     className='macos-button secondary'
-                     onClick={handleCheckForUpdates}
-                     style={{ marginLeft: '8px' }}
-                   >
-                     Retry
-                   </button>
-                 )}
-                 {!isCheckingForUpdates && updateStatus.includes('available') && (
-                   <button
-                     className='macos-button secondary'
-                     onClick={handleDownloadUpdate}
-                     style={{ marginLeft: '8px' }}
-                   >
-                     Download
-                   </button>
-                 )}
+                {!isCheckingForUpdates && updateStatus.includes('Error') && (
+                  <button
+                    className='macos-button secondary'
+                    onClick={handleCheckForUpdates}
+                    style={{ marginLeft: '8px' }}
+                  >
+                    Retry
+                  </button>
+                )}
+                {!isCheckingForUpdates &&
+                  updateStatus.includes('available') && (
+                    <button
+                      className='macos-button secondary'
+                      onClick={handleDownloadUpdate}
+                      style={{ marginLeft: '8px' }}
+                    >
+                      Download
+                    </button>
+                  )}
               </div>
             </div>
           </div>

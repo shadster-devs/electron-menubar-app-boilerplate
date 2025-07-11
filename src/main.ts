@@ -41,7 +41,7 @@ class MenubarApp {
       // Initialize core modules
       this.settingsManager = new SettingsManager();
       this.shortcutManager = new ShortcutManager();
-      
+
       // Initialize updater with error handling
       try {
         this.updaterManager = new UpdaterManager(this.settingsManager);
@@ -50,10 +50,17 @@ class MenubarApp {
         console.error('Failed to initialize UpdaterManager:', error);
         // Create a dummy updater manager that does nothing
         this.updaterManager = {
-          checkForUpdates: async () => console.warn('UpdaterManager not available'),
-          downloadUpdate: async () => console.warn('UpdaterManager not available'),
+          checkForUpdates: async () =>
+            console.warn('UpdaterManager not available'),
+          downloadUpdate: async () =>
+            console.warn('UpdaterManager not available'),
           installUpdate: () => console.warn('UpdaterManager not available'),
-          getUpdateStatus: () => ({ checking: false, available: false, downloading: false, downloaded: false }),
+          getUpdateStatus: () => ({
+            checking: false,
+            available: false,
+            downloading: false,
+            downloaded: false,
+          }),
           updateSettings: async () => {},
           cleanup: () => {},
         } as any;

@@ -48,13 +48,13 @@ export class UpdaterManager {
       // Configure auto-updater
       autoUpdater.autoDownload = false; // We'll handle download manually
       autoUpdater.autoInstallOnAppQuit = false; // We'll handle install manually
-      
+
       // Load last check time from storage
       this.loadLastCheckTime();
 
       // Schedule startup check if needed
       this.scheduleStartupCheck();
-      
+
       console.log('UpdaterManager initialized successfully');
     } catch (error) {
       console.error('Failed to initialize UpdaterManager:', error);
@@ -77,9 +77,9 @@ export class UpdaterManager {
   private async saveLastCheckTime(): Promise<void> {
     try {
       const settings = await this.settingsManager.getSettings();
-      const updatedSettings = { 
-        ...settings, 
-        lastUpdateCheck: Date.now() 
+      const updatedSettings = {
+        ...settings,
+        lastUpdateCheck: Date.now(),
       };
       await this.settingsManager.saveSettings(updatedSettings);
       this.lastCheckTime = Date.now();
@@ -102,14 +102,14 @@ export class UpdaterManager {
       }
 
       // Try to reach GitHub to ensure we can actually check for updates
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         const request = net.request('https://api.github.com');
-        
+
         const timeout = setTimeout(() => {
           request.abort();
           resolve(false);
         }, 5000); // 5 second timeout
-        
+
         request.on('response', () => {
           clearTimeout(timeout);
           resolve(true);
@@ -166,7 +166,7 @@ export class UpdaterManager {
         clearTimeout(this.currentCheckTimeout);
         this.currentCheckTimeout = undefined;
       }
-      
+
       this.updateStatus.checking = true;
       this.updateStatus.error = undefined;
       this.sendStatusToRenderer();
@@ -178,7 +178,7 @@ export class UpdaterManager {
       this.updateStatus.checking = false;
       this.updateStatus.available = true;
       this.updateStatus.retryCount = 0; // Reset retry count on success
-      
+
       // Parse release notes from GitHub
       this.parseReleaseNotes(info).then(releaseNotes => {
         this.updateStatus.updateInfo = {
@@ -187,11 +187,11 @@ export class UpdaterManager {
           releaseNotes,
         };
         this.sendStatusToRenderer();
-        
+
         // Auto-download if enabled
         this.handleAutoDownload();
       });
-      
+
       console.log('Update available:', info.version);
     });
 
@@ -202,7 +202,7 @@ export class UpdaterManager {
       this.updateStatus.retryCount = 0; // Reset retry count on success
       this.sendStatusToRenderer();
       console.log('Update not available. Current version:', info.version);
-      
+
       // Save the successful check time
       this.saveLastCheckTime();
     });
@@ -228,7 +228,7 @@ export class UpdaterManager {
       };
       this.sendStatusToRenderer();
       console.log('Update downloaded:', info.version);
-      
+
       // Save the successful check time
       this.saveLastCheckTime();
 
@@ -243,13 +243,13 @@ export class UpdaterManager {
         clearTimeout(this.currentCheckTimeout);
         this.currentCheckTimeout = undefined;
       }
-      
+
       this.updateStatus.checking = false;
       this.updateStatus.downloading = false;
       this.updateStatus.error = err.message;
       this.sendStatusToRenderer();
       console.error('Update error:', err);
-      
+
       // Attempt retry if we haven't exceeded max attempts
       this.handleRetry();
     });
@@ -258,7 +258,9 @@ export class UpdaterManager {
   private async parseReleaseNotes(info: any): Promise<string[]> {
     try {
       // Try to fetch release notes from GitHub API
-      const response = await fetch(`https://api.github.com/repos/shadster-devs/electron-menubar-app-boilerplate/releases/tags/v${info.version}`);
+      const response = await fetch(
+        `https://api.github.com/repos/shadster-devs/electron-menubar-app-boilerplate/releases/tags/v${info.version}`
+      );
       if (response.ok) {
         const release = await response.json();
         if (release.body) {
@@ -272,7 +274,7 @@ export class UpdaterManager {
     } catch (error) {
       console.error('Error fetching release notes:', error);
     }
-    
+
     // Fallback to basic info
     return [`Version ${info.version} is now available.`];
   }
@@ -289,15 +291,23 @@ export class UpdaterManager {
           this.checkForUpdates();
         }, 10000);
       } else {
-        const timeUntilNextCheck = this.CHECK_INTERVAL_24H - (Date.now() - this.lastCheckTime);
-        const hoursUntilNext = Math.round(timeUntilNextCheck / (1000 * 60 * 60));
-        console.log(`Skipping update check - next check in ${hoursUntilNext} hours`);
+        const timeUntilNextCheck =
+          this.CHECK_INTERVAL_24H - (Date.now() - this.lastCheckTime);
+        const hoursUntilNext = Math.round(
+          timeUntilNextCheck / (1000 * 60 * 60)
+        );
+        console.log(
+          `Skipping update check - next check in ${hoursUntilNext} hours`
+        );
       }
     }
   }
 
   private handleRetry(): void {
-    if (this.updateStatus.retryCount && this.updateStatus.retryCount >= this.MAX_RETRY_ATTEMPTS) {
+    if (
+      this.updateStatus.retryCount &&
+      this.updateStatus.retryCount >= this.MAX_RETRY_ATTEMPTS
+    ) {
       console.log('Max retry attempts reached, giving up');
       return;
     }
@@ -307,7 +317,9 @@ export class UpdaterManager {
     this.updateStatus.error = `Retrying... (${retryCount}/${this.MAX_RETRY_ATTEMPTS})`;
     this.sendStatusToRenderer();
 
-    console.log(`Retrying update check in ${this.RETRY_DELAY}ms (attempt ${retryCount})`);
+    console.log(
+      `Retrying update check in ${this.RETRY_DELAY}ms (attempt ${retryCount})`
+    );
     setTimeout(() => {
       this.checkForUpdates();
     }, this.RETRY_DELAY);
@@ -351,7 +363,7 @@ export class UpdaterManager {
       console.log('Calling autoUpdater.checkForUpdates()...');
       const result = await autoUpdater.checkForUpdates();
       console.log('Update check result:', result);
-      
+
       // Clear timeout on successful completion
       if (this.currentCheckTimeout) {
         clearTimeout(this.currentCheckTimeout);
@@ -359,13 +371,13 @@ export class UpdaterManager {
       }
     } catch (error) {
       console.error('Error checking for updates:', error);
-      
+
       // Clear timeout since we got an error
       if (this.currentCheckTimeout) {
         clearTimeout(this.currentCheckTimeout);
         this.currentCheckTimeout = undefined;
       }
-      
+
       this.updateStatus.checking = false;
       this.updateStatus.error =
         error instanceof Error ? error.message : 'Unknown error';

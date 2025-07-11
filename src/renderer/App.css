@@ -120,7 +120,7 @@
   width: 16px;
   height: 16px;
   border: 2px solid var(--border-light);
-  border-top: 2px solid var(--accent);
+  border-top: 2px solid var(--accent-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
