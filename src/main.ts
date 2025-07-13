@@ -87,7 +87,7 @@ class MenubarApp {
 
     this.menubar = menubar({
       index: `file://${path.join(__dirname, 'renderer', 'index.html')}`,
-      icon: path.join(__dirname, '..', 'assets', 'icons', 'menubar-icon.png'),
+      icon: path.join(__dirname, 'assets', 'icons', 'menubar-icon.png'),
       preloadWindow: true,
       showOnAllWorkspaces: true,
       windowPosition: 'trayCenter',

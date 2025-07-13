@@ -1,16 +1,17 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
-    "build": "npm run build-main && npm run build-renderer",
-    "dev": "concurrently \"npm run build-main:watch\" \"npm run build-renderer:watch\" \"wait-on dist/main.js && electron .\"",
+    "build": "npm run build-main && npm run build-renderer && npm run copy-assets",
+    "dev": "concurrently \"npm run build-main:watch\" \"npm run build-renderer:watch\" \"npm run copy-assets\" \"wait-on dist/main.js && electron .\"",
     "start": "electron .",
     "build-renderer": "webpack --mode production",
     "build-renderer:watch": "webpack --mode development --watch",
     "build-main": "tsc --project tsconfig.main.json",
     "build-main:watch": "tsc --project tsconfig.main.json --watch",
+    "copy-assets": "cp -r src/assets dist/",
     "lint": "eslint src --ext .ts,.tsx --fix",
     "lint:check": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
@@ -69,7 +70,7 @@
     "productName": "Menubar.App",
     "copyright": "Copyright © 2025 shadster-devs",
     "directories": {
-      "buildResources": "assets",
+      "buildResources": "src/assets",
       "output": "release"
     },
     "files": [
@@ -80,7 +81,7 @@
       "main": "dist/main.js"
     },
     "mac": {
-      "icon": "assets/icons/app-icon.png",
+      "icon": "src/assets/icons/app-icon.png",
       "category": "public.app-category.productivity",
       "target": [
         {
@@ -98,8 +99,8 @@
           ]
         }
       ],
-      "entitlements": "assets/entitlements.mac.plist",
-      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "entitlements": "src/assets/entitlements.mac.plist",
+      "entitlementsInherit": "src/assets/entitlements.mac.plist",
       "gatekeeperAssess": false,
       "hardenedRuntime": false,
       "notarize": false
