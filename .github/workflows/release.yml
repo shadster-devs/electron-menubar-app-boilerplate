@@ -25,9 +25,9 @@ jobs:
         run: npm ci
 
       - name: Build and Sign macOS App
-        run: npm run package:publish
+        run: npm run package
         env:
-          # GitHub token for publishing releases
+          # GitHub token
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
           # Apple Developer credentials for notarization

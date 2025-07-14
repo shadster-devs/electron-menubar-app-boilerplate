@@ -185,11 +185,11 @@ npm install --save-dev electron-builder@latest @electron/notarize@latest
 2. Replace the placeholder values with your actual credentials:
    ```bash
    export APPLE_ID="your-apple-id@gmail.com"
-   export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
-   export APPLE_TEAM_ID="YOUR_TEAM_ID"
+export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
+export APPLE_TEAM_ID="YOUR_TEAM_ID"
    export CSC_LINK="./certificate.p12"
-   export CSC_KEY_PASSWORD="your-certificate-password"
-   ```
+export CSC_KEY_PASSWORD="your-certificate-password"
+```
 
 #### 2.3 Make Script Executable
 ```bash

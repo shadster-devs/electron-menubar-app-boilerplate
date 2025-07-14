@@ -89,7 +89,7 @@ Thumbs.db
 
 # Electron build output
 out/
-dist_electron/
+dist_electron/ 
 
 # Mac Code Signing - SENSITIVE FILES (do not commit)
 package-mac-signed.sh
