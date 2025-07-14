@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "type-check": "tsc --noEmit",
-    "package": "npm run build && electron-builder build --publish never",
+    "package": "npm run build && electron-builder build",
     "package:mac-unsigned": "npm run build && electron-builder build -c.mac.identity=null --publish never",
     "package:publish": "npm run build && electron-builder build --publish always"
   },

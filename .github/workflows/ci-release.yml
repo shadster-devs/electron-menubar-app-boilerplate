@@ -62,7 +62,7 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "Publishing build because this is a tag."
-            GH_TOKEN=${{ secrets.GH_TOKEN }} npm run dist:mac
+            GH_TOKEN=${{ secrets.GH_TOKEN }} npm run package
           else
             echo "Building without publishing (not a tag)."
             npm run build
