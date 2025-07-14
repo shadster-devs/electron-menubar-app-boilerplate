@@ -17,16 +17,26 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
 
   useEffect(() => {
     const handleUpdateStatus = (event: MessageEvent) => {
-      if (event.data.type === 'updater:status') {
+      // Ensure event is from our app
+      if (
+        event.origin !== window.location.origin &&
+        event.origin !== 'file://'
+      ) {
+        return;
+      }
+
+      if (event.data?.type === 'updater:status') {
         const status = event.data.status;
         console.log('Settings received update status:', status);
 
         // Update checking state
-        setIsCheckingForUpdates(status.checking);
+        setIsCheckingForUpdates(status.checking || false);
 
         // Update progress
-        if (status.progress !== undefined) {
+        if (typeof status.progress === 'number') {
           setUpdateProgress(status.progress);
+        } else if (!status.downloading && !status.checking) {
+          setUpdateProgress(0);
         }
 
         // Update info
@@ -60,10 +70,12 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
             setUpdateStatus('No internet connection');
           } else if (status.error.includes('timed out')) {
             setUpdateStatus('Update check timed out');
+          } else if (status.error.includes('404')) {
+            setUpdateStatus('Update files not found');
           } else {
             setUpdateStatus(`Error: ${status.error}`);
           }
-        } else if (!status.available && !status.error) {
+        } else if (!status.available && !status.error && !status.checking) {
           setUpdateStatus('No updates available');
           // Clear status after 3 seconds
           setTimeout(() => setUpdateStatus(''), 3000);
@@ -101,10 +113,23 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     }
   };
 
-  const handleCheckForUpdates = async () => {
+  const handleCheckForUpdates = async (e?: React.MouseEvent) => {
+    // Prevent default behavior and event propagation
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    // Don't start new check if already checking
+    if (isCheckingForUpdates) {
+      console.log('Update check already in progress, skipping...');
+      return;
+    }
+
     setIsCheckingForUpdates(true);
     setUpdateStatus('Starting update check...');
     setUpdateProgress(0);
+    setCurrentUpdateInfo(null);
 
     try {
       console.log('UI: Triggering update check...');

@@ -250,8 +250,24 @@ export class UpdaterManager {
       this.sendStatusToRenderer();
       console.error('Update error:', err);
 
-      // Attempt retry if we haven't exceeded max attempts
-      this.handleRetry();
+      // Only retry on recoverable errors (network issues, timeouts)
+      const errorMessage = err.message.toLowerCase();
+      const isRetryableError =
+        errorMessage.includes('network') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('enotfound') ||
+        errorMessage.includes('econnrefused') ||
+        errorMessage.includes('econnreset') ||
+        errorMessage.includes('ehostunreach');
+
+      if (isRetryableError) {
+        console.log('Retryable error detected, attempting retry...');
+        this.handleRetry();
+      } else {
+        console.log('Non-retryable error, not attempting retry');
+        // Reset retry count for future attempts
+        this.updateStatus.retryCount = 0;
+      }
     });
   }
 
