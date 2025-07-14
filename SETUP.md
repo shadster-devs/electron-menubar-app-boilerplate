@@ -151,7 +151,7 @@ Your app is already configured for notarization. You need to set these environme
 ```bash
 # Required for notarization
 export APPLE_ID="your-apple-id@example.com"
-export APPLE_ID_PASSWORD="your-app-specific-password"
+export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
 export APPLE_TEAM_ID="YOUR_TEAM_ID"
 
 # For code signing (choose one approach):
@@ -205,11 +205,13 @@ CSC_LINK = base64-encoded-p12-certificate
 CSC_KEY_PASSWORD = your-certificate-password
 ```
 
+*Note: You'll still name the GitHub secret `APPLE_ID_PASSWORD` but electron-builder will read it as `APPLE_APP_SPECIFIC_PASSWORD`*
+
 **Option 2: Local `.env` file (for development)**
 ```bash
 # Create .env file in your project root
 echo "APPLE_ID=your-apple-id@example.com" > .env
-echo "APPLE_ID_PASSWORD=your-app-specific-password" >> .env
+echo "APPLE_APP_SPECIFIC_PASSWORD=your-app-specific-password" >> .env
 echo "APPLE_TEAM_ID=YOUR_TEAM_ID" >> .env
 echo "CSC_IDENTITY_AUTO_DISCOVERY=true" >> .env
 ```
@@ -220,7 +222,7 @@ echo "CSC_IDENTITY_AUTO_DISCOVERY=true" >> .env
 ```bash
 # Add to ~/.zshrc or ~/.bashrc
 export APPLE_ID="your-apple-id@example.com"
-export APPLE_ID_PASSWORD="your-app-specific-password"
+export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
 export APPLE_TEAM_ID="YOUR_TEAM_ID"
 export CSC_IDENTITY_AUTO_DISCOVERY="true"
 ```
