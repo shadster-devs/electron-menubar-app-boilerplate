@@ -18,9 +18,9 @@ const HelloWorld: React.FC = () => {
         <h1 style={{ margin: 0 }}>Hello World!</h1>
       </div>
       <div className='welcome-message'>
-        <p>Welcome to your Electron Menubar App!</p>
+        <p>Welcome to your Electron Menubar Boilerplate!</p>
         <p>
-            This is a simple React + TypeScript application running in the menubar.
+            This is a simple React TypeScript application running in the menubar.
         </p>
       </div>
       <p>
