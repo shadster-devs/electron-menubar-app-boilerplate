@@ -45,6 +45,7 @@ jobs:
     name: Build macOS App
     needs: test
     runs-on: macos-latest
+    timeout-minutes: 60  # Notarization can take time
 
     steps:
       - uses: actions/checkout@v4
@@ -61,19 +62,19 @@ jobs:
       - name: Build and Package macOS App
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "Publishing build because this is a tag."
-            npm run dist:mac
+            echo "Building signed release for tag: ${GITHUB_REF}"
+            npm run package:publish
           else
-            echo "Building without publishing (not a tag)."
-            npm run build
+            echo "Building unsigned version for development"
+            npm run package:mac-unsigned
           fi
         env:
           # GitHub token for publishing releases
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
           # Apple Developer credentials for notarization
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           
           # Code signing certificate (base64 encoded .p12 file)
@@ -82,34 +83,11 @@ jobs:
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: macos-dist
           path: |
             release/*.dmg
             release/*.zip
             release/latest-mac.yml
-
-  release:
-    name: Publish to GitHub Release
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build-macos
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos-dist
-          path: ./dist
-
-      - name: Upload to GitHub Releases
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          files: |
-            ./dist/*.dmg
-            ./dist/*.zip
-            ./dist/latest-mac.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          retention-days: 30

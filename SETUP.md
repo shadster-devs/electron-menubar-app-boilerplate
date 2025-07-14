@@ -121,8 +121,11 @@ npm run dev
 # Build for production
 npm run build
 
-# Package for macOS
-npm run dist:mac
+# Test unsigned build
+npm run package:mac-unsigned
+
+# Build signed version (after setup)
+./package-mac-signed.sh
 ```
 
 ## 📝 Important Notes
@@ -137,157 +140,161 @@ npm run dist:mac
 - **Menubar Icon**: 16x16px or 22x22px PNG (template image, should be black/transparent)
 - **Menubar Icon @2x**: 32x32px or 44x44px PNG (retina version)
 
-### Code Signing & Notarization (For Distribution)
-If you plan to distribute your app:
+## 🍎 Mac Signing and Notarization Setup
 
-#### Prerequisites
-1. Get an Apple Developer account ($99/year)
-2. Create certificates in Xcode or Apple Developer portal
-3. Update entitlements in `src/assets/entitlements.mac.plist` if needed
+For distributing your app without security warnings, you'll need to sign and notarize it.
 
-#### Notarization Setup
-Your app is already configured for notarization. You need to set these environment variables:
+### Prerequisites
 
+1. **Apple Developer Account**: You need an active Apple Developer Program subscription ($99/year)
+2. **macOS**: Code signing must be done on macOS
+3. **Xcode**: Install from the Mac App Store
+
+### Step 1: Get Required Credentials
+
+#### 1.1 App Specific Password
+1. Visit https://account.apple.com/account/manage
+2. Sign in to your Apple Account
+3. Create a new App Specific Password and store it securely
+4. The password looks like: `dsjg-zqet-rpzp-nfzy`
+
+#### 1.2 Developer ID Application Certificate
+1. Open Xcode → Settings → Account → "Manage Certificates"
+2. Click "+" to create a "Developer ID Application Certificate"
+3. Generate a random password (save this password securely)
+4. Left-click the Certificate, export it:
+   - Use the generated password
+   - Name the file "certificate"
+   - Save "certificate.p12" in your project root directory
+
+#### 1.3 Team ID
+1. Visit https://developer.apple.com/account
+2. Scroll to the "Membership details" section
+3. Copy the "Team ID" (looks like: `AB8Y7TRS2P`)
+
+### Step 2: Local Setup
+
+#### 2.1 Install Dependencies
+Dependencies are already included in the project:
 ```bash
-# Required for notarization
-export APPLE_ID="your-apple-id@example.com"
-export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
-export APPLE_TEAM_ID="YOUR_TEAM_ID"
-
-# For code signing (choose one approach):
-# Option A: Auto-discovery (for local development)
-export CSC_IDENTITY_AUTO_DISCOVERY="true"
-
-# Option B: Certificate file (for GitHub Actions)
-export CSC_LINK="base64-encoded-p12-certificate"
-export CSC_KEY_PASSWORD="your-certificate-password"
+npm install --save-dev electron-builder@latest @electron/notarize@latest
 ```
 
-#### Getting Your Credentials
+#### 2.2 Configure Signing Script
+1. Edit the `package-mac-signed.sh` file in your project root
+2. Replace the placeholder values with your actual credentials:
+   ```bash
+   export APPLE_ID="your-apple-id@gmail.com"
+   export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
+   export APPLE_TEAM_ID="YOUR_TEAM_ID"
+   export CSC_LINK="./certificate.p12"
+   export CSC_KEY_PASSWORD="your-certificate-password"
+   ```
 
-1. **Apple ID**: Your Apple Developer account email
-2. **App-Specific Password**: 
-   - Go to https://appleid.apple.com
-   - Sign in with your Apple ID
-   - Generate an app-specific password for notarization
-3. **Team ID**: 
-   - Go to https://developer.apple.com/account
-   - Look for "Team ID" in your account details
-4. **GitHub Token** (for automated releases):
-   - Go to GitHub → Settings → Developer settings → Personal access tokens
-   - Generate a new token with `repo` and `write:packages` permissions
-   - Use this for the `GH_TOKEN` secret
-
-5. **Code Signing Certificate** (for GitHub Actions):
-   - Open **Keychain Access** on macOS
-   - Find your "Developer ID Application: Your Name (TEAM_ID)" certificate
-   - Right-click → Export "Developer ID Application..."
-   - Save as `.p12` file with a password
-   - Convert to base64: `base64 -i certificate.p12 | pbcopy`
-   - Use the base64 string for `CSC_LINK` secret
-   - Use the certificate password for `CSC_KEY_PASSWORD` secret
-
-#### Setting Up Environment Variables
-
-**Option 1: GitHub Secrets (recommended for CI/CD)**
-For automated builds and releases, set these as GitHub repository secrets:
-
-1. Go to your GitHub repository
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret** and add these secrets:
-
-```
-APPLE_ID = your-apple-id@example.com
-APPLE_ID_PASSWORD = your-app-specific-password
-APPLE_TEAM_ID = YOUR_TEAM_ID
-GH_TOKEN = your-github-personal-access-token
-CSC_LINK = base64-encoded-p12-certificate
-CSC_KEY_PASSWORD = your-certificate-password
-```
-
-*Note: You'll still name the GitHub secret `APPLE_ID_PASSWORD` but electron-builder will read it as `APPLE_APP_SPECIFIC_PASSWORD`*
-
-**Option 2: Local `.env` file (for development)**
+#### 2.3 Make Script Executable
 ```bash
-# Create .env file in your project root
-echo "APPLE_ID=your-apple-id@example.com" > .env
-echo "APPLE_APP_SPECIFIC_PASSWORD=your-app-specific-password" >> .env
-echo "APPLE_TEAM_ID=YOUR_TEAM_ID" >> .env
-echo "CSC_IDENTITY_AUTO_DISCOVERY=true" >> .env
+chmod +x package-mac-signed.sh
 ```
 
-*Note: For local development, you can use `CSC_IDENTITY_AUTO_DISCOVERY=true` to automatically find certificates in your keychain instead of using CSC_LINK/CSC_KEY_PASSWORD.*
+#### 2.4 Place Certificate
+Place your `certificate.p12` file in the project root directory.
 
-**Option 3: Export in your shell profile**
+### Step 3: Build and Sign
+
+#### 3.1 Test Build (Unsigned)
 ```bash
-# Add to ~/.zshrc or ~/.bashrc
-export APPLE_ID="your-apple-id@example.com"
-export APPLE_APP_SPECIFIC_PASSWORD="your-app-specific-password"
-export APPLE_TEAM_ID="YOUR_TEAM_ID"
-export CSC_IDENTITY_AUTO_DISCOVERY="true"
+npm run package:mac-unsigned
 ```
 
-#### Building with Notarization
+#### 3.2 Build and Sign
 ```bash
-# Build and notarize
-npm run dist:mac
+./package-mac-signed.sh
 ```
 
-The notarization process will:
-1. Build your app
-2. Sign it with your Developer ID certificate
-3. Upload to Apple for notarization
-4. Staple the notarization ticket to your app
-5. Create the final DMG/ZIP files
+**Important Notes:**
+- First-time notarization can take 8-12 hours
+- Subsequent notarizations typically take 5-10 minutes
+- The process will show "notarization successful" when complete
+- The signed `.dmg` will be in the `release/` folder
 
-**Note**: First-time notarization may take 5-15 minutes. Subsequent builds are usually faster.
+### Step 4: GitHub Actions Automation
 
-#### Automated Releases with GitHub Actions
+#### 4.1 Add GitHub Secrets
+In your GitHub repository, go to Settings → Secrets and variables → Actions, and add:
 
-Once you've set up the GitHub secrets, your app will automatically:
+```
+APPLE_ID                     # Your Apple ID email
+APPLE_APP_SPECIFIC_PASSWORD  # Your App Specific Password
+APPLE_TEAM_ID                # Your Team ID
+CSC_LINK                     # Base64 encoded certificate (see below)
+CSC_KEY_PASSWORD             # Your certificate password
+```
 
-1. **On every push to `main`**: Run tests and build (without publishing)
-2. **On tagged releases**: Build, notarize, and publish to GitHub Releases
-
-**To create a release:**
+#### 4.2 Encode Certificate for GitHub
 ```bash
-# Create and push a version tag
+base64 -i certificate.p12
+```
+Copy the output and paste it as the `CSC_LINK` secret.
+
+#### 4.3 Create Release
+To trigger a signed release:
+```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The GitHub Action will:
-- ✅ Run tests and linting
-- ✅ Build and notarize your app
-- ✅ Create a GitHub release with DMG and ZIP files
-- ✅ Generate `latest-mac.yml` for auto-updater
+The GitHub Actions workflow will:
+- Build for macOS (signed)
+- Create a GitHub release with all artifacts
+- Enable auto-updates for your users
 
-## 🎯 Quick Start Commands
+### Step 5: Auto-Updates
 
-```bash
-# 1. Clone this repo
-git clone <this-repo-url> your-app-name
-cd your-app-name
+Your app already includes auto-update functionality using `electron-updater`. When you release a new version:
 
-# 2. Update package.json with your details
-# Edit: name, description, author, homepage, repository, build.appId, build.productName
+1. Update the version in `package.json`
+2. Create a new git tag: `git tag v1.0.1`
+3. Push the tag: `git push origin v1.0.1`
+4. GitHub Actions will build and publish the new version
+5. Existing users will automatically receive the update
 
-# 3. Replace icons in src/assets/icons/
+## 🔧 Build Commands
 
-# 4. Update app name in src/main.ts (tooltip)
+- `npm run package` - Build for current platform (no signing)
+- `npm run package:mac-unsigned` - Build for macOS without signing
+- `npm run package:publish` - Build and publish to GitHub releases
+- `./package-mac-signed.sh` - Build signed version locally
 
-# 5. Start development
-npm install
-npm run dev
-```
+## 🛠️ Troubleshooting
 
-## 🚀 Ready to Build
+### Common Issues
 
-Once you've made these changes:
+1. **Notarization timeout** - First-time notarization is slow; be patient
+2. **Certificate issues** - Ensure your certificate is valid and not expired
+3. **Network issues** - Notarization requires internet connection
+4. **"No identity found"** - Make sure your certificate is properly installed
 
-1. Test your app: `npm run dev`
-2. Build for production: `npm run build`
-3. Package for distribution: `npm run dist:mac`
-4. Create a GitHub release to test auto-updates
+### Build Logs
 
-That's it! Your menubar app is ready to go. 🎉 
+Check the build output for detailed error messages. Common issues:
+- Invalid credentials
+- Expired certificates
+- Network connectivity problems
+- App entitlements issues
+
+## 🔒 Security Notes
+
+- Never commit `certificate.p12` or `package-mac-signed.sh` to version control
+- These files are already added to `.gitignore`
+- Store your credentials securely
+- Rotate your App Specific Password periodically
+
+## 🚀 Next Steps
+
+1. Test the unsigned build first
+2. Set up your Apple Developer credentials
+3. Try a local signed build
+4. Configure GitHub Actions for automated releases
+5. Test the auto-update functionality
+
+For more details, refer to the [Apple Developer Documentation](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution) and [Electron Builder Documentation](https://www.electron.build/code-signing). 

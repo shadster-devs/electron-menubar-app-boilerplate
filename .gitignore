@@ -4,14 +4,7 @@ node_modules/
 # Build outputs
 dist/
 build/
-
 release/
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
 # Logs
 npm-debug.log*
@@ -59,10 +52,6 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
-.env.test
-
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -100,4 +89,9 @@ Thumbs.db
 
 # Electron build output
 out/
-dist_electron/ 
+dist_electron/
+
+# Mac Code Signing - SENSITIVE FILES (do not commit)
+package-mac-signed.sh
+certificate.p12
+*.p12 

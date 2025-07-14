@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
@@ -17,8 +17,9 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
     "type-check": "tsc --noEmit",
-    "dist": "npm run build && electron-builder --mac",
-    "dist:mac": "npm run build && electron-builder --mac"
+    "package": "npm run build && electron-builder build --publish never",
+    "package:mac-unsigned": "npm run build && electron-builder build -c.mac.identity=null --publish never",
+    "package:publish": "npm run build && electron-builder build --publish always"
   },
   "keywords": [
     "electron",
@@ -38,11 +39,12 @@
     "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
+    "@electron/notarize": "^2.3.0",
     "babel-loader": "^9.1.0",
     "concurrently": "^8.2.0",
     "css-loader": "^6.8.0",
     "electron": "^25.0.0",
-    "electron-builder": "^24.0.0",
+    "electron-builder": "^24.13.3",
     "eslint": "^8.45.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-import-resolver-typescript": "^3.5.5",
@@ -67,7 +69,7 @@
   },
   "build": {
     "appId": "com.example.menubar-app",
-    "productName": "Menubar.App",
+    "productName": "Menubar App",
     "copyright": "Copyright © 2025 shadster-devs",
     "directories": {
       "buildResources": "src/assets",
@@ -85,24 +87,18 @@
       "category": "public.app-category.productivity",
       "target": [
         {
-          "target": "dmg",
+          "target": "default",
           "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
+            "universal"
           ]
         }
       ],
+      "artifactName": "${productName}.${ext}",
+      "type": "distribution",
+      "hardenedRuntime": true,
       "entitlements": "src/assets/entitlements.mac.plist",
       "entitlementsInherit": "src/assets/entitlements.mac.plist",
-      "gatekeeperAssess": true,
-      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
       "notarize": {
         "teamId": "3JW557AW8Q"
       }
@@ -111,21 +107,46 @@
       "iconSize": 100,
       "contents": [
         {
-          "x": 380,
-          "y": 280,
-          "type": "link",
-          "path": "/Applications"
+          "x": 130,
+          "y": 220
         },
         {
-          "x": 110,
-          "y": 280,
-          "type": "file"
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
         }
       ],
       "window": {
         "width": 540,
         "height": 380
       }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "${productName}.${ext}"
+    },
+    "linux": {
+      "artifactName": "${productName}-${arch}.${ext}",
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "Development"
     },
     "publish": {
       "provider": "github",
