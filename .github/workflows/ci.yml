@@ -1,10 +1,8 @@
-name: CI & Release
+name: CI
 
 on:
   push:
     branches: [ main, develop ]
-    tags:
-      - 'v*'
   pull_request:
     branches: [ main, develop ]
 
@@ -60,26 +58,7 @@ jobs:
         run: npm ci
 
       - name: Build and Package macOS App
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "Building signed release for tag: ${GITHUB_REF}"
-            npm run package:publish
-          else
-            echo "Building unsigned version for development"
-            npm run package:mac-unsigned
-          fi
-        env:
-          # GitHub token for publishing releases
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-          # Apple Developer credentials for notarization
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          
-          # Code signing certificate (base64 encoded .p12 file)
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run package:mac-unsigned
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
