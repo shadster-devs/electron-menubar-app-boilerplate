@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
@@ -103,7 +103,9 @@
       "entitlementsInherit": "src/assets/entitlements.mac.plist",
       "gatekeeperAssess": true,
       "hardenedRuntime": true,
-      "notarize": true
+      "notarize": {
+        "teamId": "3JW557AW8Q"
+      }
     },
     "dmg": {
       "iconSize": 100,
