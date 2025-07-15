@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
@@ -89,11 +89,12 @@
         {
           "target": "default",
           "arch": [
-            "universal"
+            "x64",
+            "arm64"
           ]
         }
       ],
-      "artifactName": "Menubar-App-v${version}.${ext}",
+      "artifactName": "Menubar-App-v${version}-${arch}.${ext}",
       "type": "distribution",
       "hardenedRuntime": true,
       "entitlements": "src/assets/entitlements.mac.plist",
