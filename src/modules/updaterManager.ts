@@ -1,7 +1,7 @@
 import { dialog, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
+import type { UpdateStatus } from '../shared/constants';
 import { SettingsManager } from './settingsManager';
-import type { UpdateInfo, UpdateStatus } from '../shared/constants';
 
 export class UpdaterManager {
   private settingsManager: SettingsManager;
@@ -184,13 +184,15 @@ export class UpdaterManager {
     // Simple release notes parsing - electron-updater usually provides this
     if (info.releaseNotes) {
       if (typeof info.releaseNotes === 'string') {
-        return info.releaseNotes.split('\n').filter((line: string) => line.trim().length > 0);
+        return info.releaseNotes
+          .split('\n')
+          .filter((line: string) => line.trim().length > 0);
       }
       if (Array.isArray(info.releaseNotes)) {
         return info.releaseNotes;
       }
     }
-    
+
     // Fallback
     return [`Version ${info.version} is now available.`];
   }
@@ -207,9 +209,14 @@ export class UpdaterManager {
           this.checkForUpdates();
         }, 10000);
       } else {
-        const timeUntilNextCheck = this.CHECK_INTERVAL_24H - (Date.now() - this.lastCheckTime);
-        const hoursUntilNext = Math.round(timeUntilNextCheck / (1000 * 60 * 60));
-        console.log(`Skipping update check - next check in ${hoursUntilNext} hours`);
+        const timeUntilNextCheck =
+          this.CHECK_INTERVAL_24H - (Date.now() - this.lastCheckTime);
+        const hoursUntilNext = Math.round(
+          timeUntilNextCheck / (1000 * 60 * 60)
+        );
+        console.log(
+          `Skipping update check - next check in ${hoursUntilNext} hours`
+        );
       }
     }
   }
@@ -230,7 +237,8 @@ export class UpdaterManager {
     } catch (error) {
       console.error('Error checking for updates:', error);
       this.updateStatus.checking = false;
-      this.updateStatus.error = error instanceof Error ? error.message : 'Unknown error';
+      this.updateStatus.error =
+        error instanceof Error ? error.message : 'Unknown error';
       this.sendStatusToRenderer();
     }
   }
@@ -240,7 +248,8 @@ export class UpdaterManager {
       await autoUpdater.downloadUpdate();
     } catch (error) {
       console.error('Error downloading update:', error);
-      this.updateStatus.error = error instanceof Error ? error.message : 'Unknown error';
+      this.updateStatus.error =
+        error instanceof Error ? error.message : 'Unknown error';
       this.sendStatusToRenderer();
     }
   }

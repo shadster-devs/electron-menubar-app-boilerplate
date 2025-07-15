@@ -16,8 +16,9 @@ const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
-  const [notificationUpdateInfo, setNotificationUpdateInfo] = useState<any>(null);
-  
+  const [notificationUpdateInfo, setNotificationUpdateInfo] =
+    useState<any>(null);
+
   // Use centralized update status hook
   const { updateStatus, installUpdate } = useUpdateStatus();
 
@@ -36,21 +37,37 @@ const App: React.FC = () => {
     }
 
     // Show toast when no update is available
-    if (!updateStatus.checking && !updateStatus.available && !updateStatus.error) {
+    if (
+      !updateStatus.checking &&
+      !updateStatus.available &&
+      !updateStatus.error
+    ) {
       (window as any).showToast?.('No updates available', 'success');
     }
 
     // Show toast for errors
     if (updateStatus.error) {
-      (window as any).showToast?.(`Update error: ${updateStatus.error}`, 'error');
+      (window as any).showToast?.(
+        `Update error: ${updateStatus.error}`,
+        'error'
+      );
     }
 
     // Show notification when update is downloaded
-    if (updateStatus.downloaded && !updateStatus.error && updateStatus.updateInfo) {
+    if (
+      updateStatus.downloaded &&
+      !updateStatus.error &&
+      updateStatus.updateInfo
+    ) {
       setNotificationUpdateInfo(updateStatus.updateInfo);
       setShowUpdateNotification(true);
     }
-  }, [updateStatus?.checking, updateStatus?.available, updateStatus?.error, updateStatus?.downloaded]);
+  }, [
+    updateStatus?.checking,
+    updateStatus?.available,
+    updateStatus?.error,
+    updateStatus?.downloaded,
+  ]);
 
   // Apply theme to document element whenever settings change
   useEffect(() => {
@@ -135,10 +152,10 @@ const App: React.FC = () => {
             </ErrorBoundary>
           )}
         </div>
-        
+
         {/* Toast notifications */}
         <ToastContainer maxToasts={5} />
-        
+
         {/* Update notification */}
         {showUpdateNotification && notificationUpdateInfo && (
           <UpdateNotification

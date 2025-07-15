@@ -10,7 +10,9 @@
   pointer-events: auto;
   transform: translateX(100%);
   opacity: 0;
-  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out;
   margin-bottom: 8px;
 }
 
@@ -22,7 +24,9 @@
 .toast-leaving {
   transform: translateX(100%);
   opacity: 0;
-  transition: transform 0.3s ease-in, opacity 0.3s ease-in;
+  transition:
+    transform 0.3s ease-in,
+    opacity 0.3s ease-in;
 }
 
 .toast-message {
@@ -53,8 +57,8 @@
     right: 20px;
     top: 20px;
   }
-  
+
   .toast {
     max-width: none;
   }
-} 
+}

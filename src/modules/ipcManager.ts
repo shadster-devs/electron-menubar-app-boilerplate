@@ -227,9 +227,9 @@ export class IPCManager {
         return { success: true };
       } catch (error) {
         console.error('Error checking for updates:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     });
@@ -240,9 +240,9 @@ export class IPCManager {
         return { success: true };
       } catch (error) {
         console.error('Error downloading update:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     });
@@ -253,9 +253,9 @@ export class IPCManager {
         return { success: true };
       } catch (error) {
         console.error('Error installing update:', error);
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     });

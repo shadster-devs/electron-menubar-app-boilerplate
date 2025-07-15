@@ -13,7 +13,9 @@
   min-width: 300px;
   transform: translateX(100%);
   opacity: 0;
-  transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+  transition:
+    transform 0.4s ease-out,
+    opacity 0.4s ease-out;
 }
 
 .update-notification-visible {
@@ -24,7 +26,9 @@
 .update-notification-leaving {
   transform: translateX(100%);
   opacity: 0;
-  transition: transform 0.3s ease-in, opacity 0.3s ease-in;
+  transition:
+    transform 0.3s ease-in,
+    opacity 0.3s ease-in;
 }
 
 .update-notification-close {
@@ -40,7 +44,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .update-notification-close:hover {
@@ -189,4 +195,4 @@
 /* Dark theme adjustments */
 [data-theme='dark'] .update-notification {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-} 
+}

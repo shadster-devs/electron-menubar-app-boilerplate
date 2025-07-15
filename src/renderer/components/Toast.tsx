@@ -9,12 +9,12 @@ export interface ToastProps {
   onClose: (id: string) => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ 
-  id, 
-  message, 
-  type = 'info', 
-  duration = 3000, 
-  onClose 
+const Toast: React.FC<ToastProps> = ({
+  id,
+  message,
+  type = 'info',
+  duration = 3000,
+  onClose,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -52,15 +52,15 @@ const Toast: React.FC<ToastProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`toast ${isVisible && !isLeaving ? 'toast-visible' : ''} ${isLeaving ? 'toast-leaving' : ''}`}
       style={{
         borderLeftColor: getToastColor(),
       }}
     >
-      <p className="toast-message">{message}</p>
+      <p className='toast-message'>{message}</p>
     </div>
   );
 };
 
-export default Toast; 
+export default Toast;

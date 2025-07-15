@@ -180,8 +180,8 @@ class MenubarApp {
   private async setupManagers(): Promise<void> {
     // Initialize context menu manager after menubar is created with direct updater access
     this.contextMenuManager = new ContextMenuManager(
-      this.menubar, 
-      this.updaterManager, 
+      this.menubar,
+      this.updaterManager,
       () => this.quitApp()
     );
 

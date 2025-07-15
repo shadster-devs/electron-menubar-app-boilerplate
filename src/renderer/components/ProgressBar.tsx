@@ -16,22 +16,22 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   height = '4px',
   backgroundColor = 'var(--border-light)',
   fillColor = 'var(--accent-primary)',
-  className = ''
+  className = '',
 }) => {
   // Clamp progress between 0 and 100
   const clampedProgress = Math.max(0, Math.min(100, progress));
 
   return (
     <div className={`progress-bar-container ${className}`}>
-      <div 
-        className="progress-bar-track"
+      <div
+        className='progress-bar-track'
         style={{
           height,
           backgroundColor,
         }}
       >
         <div
-          className="progress-bar-fill"
+          className='progress-bar-fill'
           style={{
             width: `${clampedProgress}%`,
             backgroundColor: fillColor,
@@ -40,7 +40,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         />
       </div>
       {showPercentage && (
-        <div className="progress-bar-label">
+        <div className='progress-bar-label'>
           {Math.round(clampedProgress)}% complete
         </div>
       )}
@@ -48,4 +48,4 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   );
 };
 
-export default ProgressBar; 
+export default ProgressBar;

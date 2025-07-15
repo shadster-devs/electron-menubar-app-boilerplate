@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import Toast, { ToastProps } from './Toast';
+import Toast from './Toast';
 import './Toast.css';
 
 export interface ToastData {
@@ -14,7 +14,11 @@ export interface ToastContainerProps {
 }
 
 export interface ToastContextType {
-  showToast: (message: string, type?: 'info' | 'success' | 'error', duration?: number) => void;
+  showToast: (
+    message: string,
+    type?: 'info' | 'success' | 'error',
+    duration?: number
+  ) => void;
 }
 
 const ToastContainer: React.FC<ToastContainerProps> = ({ maxToasts = 5 }) => {
@@ -24,33 +28,40 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ maxToasts = 5 }) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   }, []);
 
-  const addToast = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info', duration = 3000) => {
-    const id = `toast-${Date.now()}-${Math.random()}`;
-    const newToast: ToastData = { id, message, type, duration };
+  const addToast = useCallback(
+    (
+      message: string,
+      type: 'info' | 'success' | 'error' = 'info',
+      duration = 3000
+    ) => {
+      const id = `toast-${Date.now()}-${Math.random()}`;
+      const newToast: ToastData = { id, message, type, duration };
 
-    setToasts(prev => {
-      const updated = [...prev, newToast];
-      
-      // Remove oldest toasts if we exceed maxToasts
-      if (updated.length > maxToasts) {
-        return updated.slice(-maxToasts);
-      }
-      
-      return updated;
-    });
-  }, [maxToasts]);
+      setToasts(prev => {
+        const updated = [...prev, newToast];
+
+        // Remove oldest toasts if we exceed maxToasts
+        if (updated.length > maxToasts) {
+          return updated.slice(-maxToasts);
+        }
+
+        return updated;
+      });
+    },
+    [maxToasts]
+  );
 
   // Expose the addToast function globally for easy access
   React.useEffect(() => {
     (window as any).showToast = addToast;
-    
+
     return () => {
       delete (window as any).showToast;
     };
   }, [addToast]);
 
   return (
-    <div className="toast-container">
+    <div className='toast-container'>
       {toasts.map(toast => (
         <Toast
           key={toast.id}
@@ -65,4 +76,4 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ maxToasts = 5 }) => {
   );
 };
 
-export default ToastContainer; 
+export default ToastContainer;

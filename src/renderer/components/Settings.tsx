@@ -1,9 +1,9 @@
 import { Palette, Settings2, Keyboard, Download } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 import type { AppSettings } from '../../shared/constants';
-import ShortcutRecorder from './ShortcutRecorder';
-import ProgressBar from './ProgressBar';
 import { useUpdateStatus } from '../hooks/useUpdateStatus';
+import ProgressBar from './ProgressBar';
+import ShortcutRecorder from './ShortcutRecorder';
 import './Settings.css';
 
 interface SettingsProps {
@@ -13,13 +13,13 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   // Use centralized update status hook
-  const { 
-    updateStatus, 
-    isCheckingForUpdates, 
-    updateProgress, 
-    currentUpdateInfo, 
-    checkForUpdates, 
-    downloadUpdate 
+  const {
+    updateStatus,
+    isCheckingForUpdates,
+    updateProgress,
+    currentUpdateInfo,
+    checkForUpdates,
+    downloadUpdate,
   } = useUpdateStatus();
 
   // Generate user-friendly status message
@@ -44,10 +44,14 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
       } else {
         return `Error: ${updateStatus.error}`;
       }
-    } else if (!updateStatus.available && !updateStatus.error && !updateStatus.checking) {
+    } else if (
+      !updateStatus.available &&
+      !updateStatus.error &&
+      !updateStatus.checking
+    ) {
       return 'No updates available';
     }
-    
+
     return '';
   };
 
@@ -111,10 +115,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     if (!isCheckingForUpdates && updateProgress === 0) return null;
 
     return (
-      <ProgressBar 
-        progress={updateProgress} 
+      <ProgressBar
+        progress={updateProgress}
         showPercentage={true}
-        className="compact"
+        className='compact'
       />
     );
   };
@@ -373,14 +377,14 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                   </button>
                 )}
                 {!isCheckingForUpdates && updateStatus?.available && (
-                    <button
-                      className='macos-button secondary'
-                      onClick={handleDownloadUpdate}
-                      style={{ marginLeft: '8px' }}
-                    >
-                      Download
-                    </button>
-                  )}
+                  <button
+                    className='macos-button secondary'
+                    onClick={handleDownloadUpdate}
+                    style={{ marginLeft: '8px' }}
+                  >
+                    Download
+                  </button>
+                )}
               </div>
             </div>
           </div>

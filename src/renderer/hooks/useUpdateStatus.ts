@@ -86,7 +86,7 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
     try {
       console.log('UI: Triggering update check...');
       const result = await window.electronAPI?.checkForUpdates();
-      
+
       if (result && !result.success) {
         console.error('Update check failed:', result.error);
         // The error will be handled by the status listener
@@ -99,7 +99,7 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
   const downloadUpdate = async (): Promise<void> => {
     try {
       const result = await window.electronAPI?.downloadUpdate();
-      
+
       if (result && !result.success) {
         console.error('Update download failed:', result.error);
       }
@@ -111,7 +111,7 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
   const installUpdate = async (): Promise<void> => {
     try {
       const result = await window.electronAPI?.installUpdate();
-      
+
       if (result && !result.success) {
         console.error('Update install failed:', result.error);
       }
@@ -129,4 +129,4 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
     downloadUpdate,
     installUpdate,
   };
-}; 
+};
