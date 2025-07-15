@@ -72,13 +72,6 @@ export class UpdaterManager {
     return timeSinceLastCheck >= this.CHECK_INTERVAL_24H;
   }
 
-  private async handleAutoDownload(): Promise<void> {
-    const settings = await this.settingsManager.getSettings();
-    if (settings.updater?.autoCheckDownloadAndInstall) {
-      this.downloadUpdate();
-    }
-  }
-
   private sendStatusToRenderer(): void {
     // Send update status to all renderer windows
     BrowserWindow.getAllWindows().forEach(window => {
@@ -125,9 +118,7 @@ export class UpdaterManager {
       };
       this.sendStatusToRenderer();
 
-      // Auto-download if enabled
-      this.handleAutoDownload();
-
+      // Removed auto-download - user will manually click Download button
       console.log('Update available:', info.version);
     });
 
@@ -243,19 +234,31 @@ export class UpdaterManager {
     }
   }
 
-  async downloadUpdate(): Promise<void> {
+  installUpdate(): void {
+    console.log('Installing update and restarting...');
     try {
-      await autoUpdater.downloadUpdate();
+      // Set autoInstallOnAppQuit to true before quitting
+      autoUpdater.autoInstallOnAppQuit = true;
+
+      // Force quit and install immediately
+      autoUpdater.quitAndInstall(false, true);
     } catch (error) {
-      console.error('Error downloading update:', error);
-      this.updateStatus.error =
-        error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error installing update:', error);
+      this.updateStatus.error = 'Failed to install update';
       this.sendStatusToRenderer();
     }
   }
 
-  installUpdate(): void {
-    autoUpdater.quitAndInstall();
+  downloadUpdate(): void {
+    if (this.updateStatus.available && !this.updateStatus.downloading) {
+      console.log('Starting update download...');
+      this.updateStatus.downloading = true;
+      this.updateStatus.progress = 0;
+      this.sendStatusToRenderer();
+      autoUpdater.downloadUpdate();
+    } else {
+      console.log('No update available to download or already downloading');
+    }
   }
 
   getUpdateStatus(): UpdateStatus {

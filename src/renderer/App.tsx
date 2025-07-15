@@ -5,7 +5,6 @@ import Header from './components/Header';
 import HelloWorld from './components/HelloWorld';
 import Settings from './components/Settings';
 import ToastContainer from './components/ToastContainer';
-import UpdateNotification from './components/UpdateNotification';
 import { useUpdateStatus } from './hooks/useUpdateStatus';
 import './App.css';
 
@@ -15,12 +14,9 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('home');
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
-  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
-  const [notificationUpdateInfo, setNotificationUpdateInfo] =
-    useState<any>(null);
 
   // Use centralized update status hook
-  const { updateStatus, installUpdate } = useUpdateStatus();
+  const { updateStatus } = useUpdateStatus();
 
   useEffect(() => {
     // Load settings on app start
@@ -59,8 +55,10 @@ const App: React.FC = () => {
       !updateStatus.error &&
       updateStatus.updateInfo
     ) {
-      setNotificationUpdateInfo(updateStatus.updateInfo);
-      setShowUpdateNotification(true);
+      // Let macOS handle update notifications natively
+      console.log(
+        'Update downloaded, ready for install via macOS notification'
+      );
     }
   }, [
     updateStatus?.checking,
@@ -113,18 +111,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleInstallUpdate = async () => {
-    try {
-      await installUpdate();
-    } catch (error) {
-      console.error('Error installing update:', error);
-    }
-  };
-
-  const handleDismissNotification = () => {
-    setShowUpdateNotification(false);
-    setNotificationUpdateInfo(null);
-  };
+  // Removed handleDismissNotification as it's no longer needed
 
   return (
     <ErrorBoundary>
@@ -155,15 +142,6 @@ const App: React.FC = () => {
 
         {/* Toast notifications */}
         <ToastContainer maxToasts={5} />
-
-        {/* Update notification */}
-        {showUpdateNotification && notificationUpdateInfo && (
-          <UpdateNotification
-            updateInfo={notificationUpdateInfo}
-            onInstall={handleInstallUpdate}
-            onDismiss={handleDismissNotification}
-          />
-        )}
       </div>
     </ErrorBoundary>
   );

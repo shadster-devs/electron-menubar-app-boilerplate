@@ -360,31 +360,45 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 {renderReleaseNotes()}
               </div>
               <div className='setting-control'>
-                <button
-                  className='macos-button primary'
-                  onClick={handleCheckForUpdates}
-                  disabled={isCheckingForUpdates}
-                >
-                  {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
-                </button>
-                {!isCheckingForUpdates && updateStatus?.error && (
-                  <button
-                    className='macos-button secondary'
-                    onClick={handleCheckForUpdates}
-                    style={{ marginLeft: '8px' }}
-                  >
-                    Retry
-                  </button>
-                )}
-                {!isCheckingForUpdates && updateStatus?.available && (
-                  <button
-                    className='macos-button secondary'
-                    onClick={handleDownloadUpdate}
-                    style={{ marginLeft: '8px' }}
-                  >
-                    Download
-                  </button>
-                )}
+                <div className='update-buttons'>
+                  {!updateStatus?.available &&
+                    !updateStatus?.downloading &&
+                    !updateStatus?.downloaded && (
+                      <button
+                        className='macos-button primary'
+                        onClick={handleCheckForUpdates}
+                        disabled={isCheckingForUpdates}
+                      >
+                        {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
+                      </button>
+                    )}
+
+                  {updateStatus?.error && !isCheckingForUpdates && (
+                    <button
+                      className='macos-button secondary'
+                      onClick={handleCheckForUpdates}
+                    >
+                      Retry
+                    </button>
+                  )}
+
+                  {updateStatus?.available &&
+                    !updateStatus?.downloading &&
+                    !updateStatus?.downloaded && (
+                      <button
+                        className='macos-button primary'
+                        onClick={handleDownloadUpdate}
+                      >
+                        Download Update
+                      </button>
+                    )}
+
+                  {updateStatus?.downloading && (
+                    <button className='macos-button primary' disabled={true}>
+                      Downloading...
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

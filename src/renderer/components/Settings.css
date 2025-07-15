@@ -240,3 +240,15 @@
   padding: 16px 20px;
   text-align: center;
 }
+
+.update-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 130px;
+}
+
+.update-buttons .macos-button {
+  width: 100%;
+  justify-content: center;
+}
