@@ -224,30 +224,39 @@ export class IPCManager {
     ipcMain.handle('updater:checkForUpdates', async () => {
       try {
         await this.updaterManager.checkForUpdates();
-        return true;
+        return { success: true };
       } catch (error) {
         console.error('Error checking for updates:', error);
-        return false;
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
       }
     });
 
     ipcMain.handle('updater:downloadUpdate', async () => {
       try {
         await this.updaterManager.downloadUpdate();
-        return true;
+        return { success: true };
       } catch (error) {
         console.error('Error downloading update:', error);
-        return false;
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
       }
     });
 
     ipcMain.handle('updater:installUpdate', async () => {
       try {
         this.updaterManager.installUpdate();
-        return true;
+        return { success: true };
       } catch (error) {
         console.error('Error installing update:', error);
-        return false;
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        };
       }
     });
 

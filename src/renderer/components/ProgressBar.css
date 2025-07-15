@@ -1,0 +1,89 @@
+/* Progress Bar Component Styles */
+.progress-bar-container {
+  margin-top: 8px;
+  background: var(--background-tertiary);
+  border-radius: 6px;
+  padding: 8px;
+  border: 1px solid var(--border-primary);
+}
+
+.progress-bar-track {
+  width: 100%;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--border-light);
+  transition: background-color 0.2s ease;
+}
+
+.progress-bar-fill {
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  background: var(--accent-primary);
+  position: relative;
+}
+
+.progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 50%,
+    transparent 75%,
+    rgba(255, 255, 255, 0.1) 75%
+  );
+  background-size: 16px 16px;
+  animation: progress-stripe 0.5s linear infinite;
+}
+
+.progress-bar-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Animations */
+@keyframes progress-stripe {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 16px;
+  }
+}
+
+/* Variants */
+.progress-bar-container.compact {
+  padding: 4px;
+  margin-top: 4px;
+}
+
+.progress-bar-container.compact .progress-bar-label {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+/* Theme adjustments */
+[data-theme='dark'] .progress-bar-track {
+  background: var(--background-primary);
+}
+
+[data-theme='dark'] .progress-bar-fill::after {
+  background: linear-gradient(
+    45deg,
+    transparent 25%,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 50%,
+    transparent 75%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+} 

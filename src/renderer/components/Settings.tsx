@@ -1,7 +1,9 @@
 import { Palette, Settings2, Keyboard, Download } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { AppSettings } from '../../shared/constants';
 import ShortcutRecorder from './ShortcutRecorder';
+import ProgressBar from './ProgressBar';
+import { useUpdateStatus } from '../hooks/useUpdateStatus';
 import './Settings.css';
 
 interface SettingsProps {
@@ -10,82 +12,44 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
-  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<string>('');
-  const [updateProgress, setUpdateProgress] = useState<number>(0);
-  const [currentUpdateInfo, setCurrentUpdateInfo] = useState<any>(null);
+  // Use centralized update status hook
+  const { 
+    updateStatus, 
+    isCheckingForUpdates, 
+    updateProgress, 
+    currentUpdateInfo, 
+    checkForUpdates, 
+    downloadUpdate 
+  } = useUpdateStatus();
 
-  useEffect(() => {
-    const handleUpdateStatus = (event: MessageEvent) => {
-      // Ensure event is from our app
-      if (
-        event.origin !== window.location.origin &&
-        event.origin !== 'file://'
-      ) {
-        return;
+  // Generate user-friendly status message
+  const getUpdateStatusMessage = (): string => {
+    if (!updateStatus) return '';
+
+    if (updateStatus.checking) {
+      return 'Checking for updates...';
+    } else if (updateStatus.downloading) {
+      return `Downloading update... ${updateStatus.progress || 0}%`;
+    } else if (updateStatus.downloaded) {
+      return `Update downloaded: v${updateStatus.updateInfo?.version || 'Unknown'}`;
+    } else if (updateStatus.available) {
+      return `Update available: v${updateStatus.updateInfo?.version || 'Unknown'}`;
+    } else if (updateStatus.error) {
+      if (updateStatus.error.includes('No network')) {
+        return 'No internet connection';
+      } else if (updateStatus.error.includes('timed out')) {
+        return 'Update check timed out';
+      } else if (updateStatus.error.includes('404')) {
+        return 'Update files not found';
+      } else {
+        return `Error: ${updateStatus.error}`;
       }
-
-      if (event.data?.type === 'updater:status') {
-        const status = event.data.status;
-        console.log('Settings received update status:', status);
-
-        // Update checking state
-        setIsCheckingForUpdates(status.checking || false);
-
-        // Update progress
-        if (typeof status.progress === 'number') {
-          setUpdateProgress(status.progress);
-        } else if (!status.downloading && !status.checking) {
-          setUpdateProgress(0);
-        }
-
-        // Update info
-        if (status.updateInfo) {
-          setCurrentUpdateInfo(status.updateInfo);
-        }
-
-        // Update status text
-        if (status.checking) {
-          if (status.retryCount && status.retryCount > 0) {
-            setUpdateStatus(
-              `Checking for updates... (Retry ${status.retryCount}/3)`
-            );
-          } else {
-            setUpdateStatus('Checking for updates...');
-          }
-        } else if (status.downloading) {
-          setUpdateStatus(`Downloading update... ${status.progress || 0}%`);
-        } else if (status.downloaded) {
-          setUpdateStatus(
-            `Update downloaded: v${status.updateInfo?.version || 'Unknown'}`
-          );
-        } else if (status.available) {
-          setUpdateStatus(
-            `Update available: v${status.updateInfo?.version || 'Unknown'}`
-          );
-        } else if (status.error) {
-          if (status.error.includes('Retrying')) {
-            setUpdateStatus(status.error);
-          } else if (status.error.includes('No network')) {
-            setUpdateStatus('No internet connection');
-          } else if (status.error.includes('timed out')) {
-            setUpdateStatus('Update check timed out');
-          } else if (status.error.includes('404')) {
-            setUpdateStatus('Update files not found');
-          } else {
-            setUpdateStatus(`Error: ${status.error}`);
-          }
-        } else if (!status.available && !status.error && !status.checking) {
-          setUpdateStatus('No updates available');
-          // Clear status after 3 seconds
-          setTimeout(() => setUpdateStatus(''), 3000);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleUpdateStatus);
-    return () => window.removeEventListener('message', handleUpdateStatus);
-  }, []);
+    } else if (!updateStatus.available && !updateStatus.error && !updateStatus.checking) {
+      return 'No updates available';
+    }
+    
+    return '';
+  };
 
   const handleSettingChange = async (key: keyof AppSettings, value: any) => {
     if (!settings) return;
@@ -126,30 +90,20 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
       return;
     }
 
-    setIsCheckingForUpdates(true);
-    setUpdateStatus('Starting update check...');
-    setUpdateProgress(0);
-    setCurrentUpdateInfo(null);
-
     try {
       console.log('UI: Triggering update check...');
-      await window.electronAPI?.checkForUpdates();
+      await checkForUpdates();
       console.log('UI: Update check request sent');
     } catch (error) {
       console.error('Error checking for updates:', error);
-      setIsCheckingForUpdates(false);
-      setUpdateStatus(`Error: ${error}`);
     }
-    // Note: We don't set setIsCheckingForUpdates(false) here because
-    // it will be handled by the status listener
   };
 
   const handleDownloadUpdate = async () => {
     try {
-      await window.electronAPI?.downloadUpdate();
+      await downloadUpdate();
     } catch (error) {
       console.error('Error downloading update:', error);
-      setUpdateStatus(`Download failed: ${error}`);
     }
   };
 
@@ -157,45 +111,11 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     if (!isCheckingForUpdates && updateProgress === 0) return null;
 
     return (
-      <div
-        style={{
-          marginTop: '8px',
-          background: 'var(--background-tertiary)',
-          borderRadius: '6px',
-          padding: '8px',
-          border: '1px solid var(--border-primary)',
-        }}
-      >
-        <div
-          style={{
-            width: '100%',
-            height: '4px',
-            background: 'var(--border-light)',
-            borderRadius: '2px',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${updateProgress}%`,
-              height: '100%',
-              background: 'var(--accent-primary)',
-              borderRadius: '2px',
-              transition: 'width 0.3s ease',
-            }}
-          />
-        </div>
-        <div
-          style={{
-            fontSize: '11px',
-            color: 'var(--text-secondary)',
-            marginTop: '4px',
-            textAlign: 'center',
-          }}
-        >
-          {updateProgress}% complete
-        </div>
-      </div>
+      <ProgressBar 
+        progress={updateProgress} 
+        showPercentage={true}
+        className="compact"
+      />
     );
   };
 
@@ -418,10 +338,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 <p className='setting-description'>
                   Manually check for available updates
                 </p>
-                {updateStatus && (
+                {getUpdateStatusMessage() && (
                   <p
                     style={{
-                      color: updateStatus.includes('Error')
+                      color: getUpdateStatusMessage().includes('Error')
                         ? 'var(--text-danger, #ff4444)'
                         : 'var(--accent-primary)',
                       fontSize: '12px',
@@ -429,7 +349,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                       fontWeight: 'bold',
                     }}
                   >
-                    {updateStatus}
+                    {getUpdateStatusMessage()}
                   </p>
                 )}
                 {renderUpdateProgress()}
@@ -443,7 +363,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 >
                   {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
                 </button>
-                {!isCheckingForUpdates && updateStatus.includes('Error') && (
+                {!isCheckingForUpdates && updateStatus?.error && (
                   <button
                     className='macos-button secondary'
                     onClick={handleCheckForUpdates}
@@ -452,8 +372,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                     Retry
                   </button>
                 )}
-                {!isCheckingForUpdates &&
-                  updateStatus.includes('available') && (
+                {!isCheckingForUpdates && updateStatus?.available && (
                     <button
                       className='macos-button secondary'
                       onClick={handleDownloadUpdate}

@@ -1,4 +1,5 @@
 import { Menu, app, MenuItemConstructorOptions, BrowserWindow } from 'electron';
+import { UpdaterManager } from './updaterManager';
 
 type ClickBehavior = 'right-only' | 'left-and-right' | 'left-only';
 
@@ -7,9 +8,11 @@ export class ContextMenuManager {
   private contextMenu: Menu | null = null;
   private currentBehavior: ClickBehavior = 'right-only';
   private readonly quitCallback?: () => void;
+  private readonly updaterManager?: UpdaterManager;
 
-  constructor(menubar: any, quitCallback?: () => void) {
+  constructor(menubar: any, updaterManager?: UpdaterManager, quitCallback?: () => void) {
     this.menubar = menubar;
+    this.updaterManager = updaterManager;
     this.quitCallback = quitCallback;
   }
 
@@ -102,11 +105,12 @@ export class ContextMenuManager {
 
   private async checkForUpdates(): Promise<void> {
     try {
-      // Send check for updates request to all windows
-      const windows = BrowserWindow.getAllWindows();
-      windows.forEach(window => {
-        window.webContents.send('context-menu:check-for-updates');
-      });
+      if (this.updaterManager) {
+        // Direct call to updater manager - much cleaner!
+        await this.updaterManager.checkForUpdates();
+      } else {
+        console.warn('UpdaterManager not available for context menu update check');
+      }
     } catch (error) {
       console.error('Error triggering update check:', error);
     }

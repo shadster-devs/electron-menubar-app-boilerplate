@@ -95,7 +95,7 @@
 
 .content {
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
   -webkit-app-region: no-drag;
 }
 

@@ -1,0 +1,125 @@
+---
+alwaysApply: true
+description: "Electron Menubar Application Development Rules"
+---
+
+# Electron Menubar Application Development Rules
+
+## Project Architecture
+
+This is an Electron menubar application with the following key structure:
+- **Main Process**: [src/main.ts](mdc:src/main.ts) - Entry point using menubar library
+- **Renderer Process**: [src/renderer/App.tsx](mdc:src/renderer/App.tsx) - React frontend
+- **Preload Script**: [src/preload.ts](mdc:src/preload.ts) - Secure IPC bridge
+- **Modules**: [src/modules/](mdc:src/modules/) - Core functionality managers
+- **Shared**: [src/shared/constants.ts](mdc:src/shared/constants.ts) - Common types/constants
+
+## Module Organization
+
+All core functionality is organized into manager classes in [src/modules/](mdc:src/modules/):
+- `SettingsManager` - Persistent JSON-based settings storage
+- `ShortcutManager` - Global keyboard shortcuts handling  
+- `ContextMenuManager` - Tray icon context menu functionality
+- `IPCManager` - Inter-process communication handling
+- `UpdaterManager` - Auto-update functionality
+
+**Rule**: When adding new functionality, create a dedicated manager class and export it from [src/modules/index.ts](mdc:src/modules/index.ts).
+
+## TypeScript Standards
+
+- Use strict TypeScript with explicit types from [src/shared/constants.ts](mdc:src/shared/constants.ts)
+- Import types with `import type { }` syntax
+- Use proper error handling with try-catch blocks
+- Follow the existing async/await patterns
+
+## React Component Rules
+
+- All components in [src/renderer/components/](mdc:src/renderer/components/) must have:
+  - Corresponding `.css` file for styles
+  - TypeScript interface for props
+  - Error boundaries for robust error handling
+- Use React 18+ patterns (no need for `React.FC` in imports)
+- Wrap new components in [ErrorBoundary.tsx](mdc:src/renderer/components/ErrorBoundary.tsx)
+
+## IPC Communication
+
+- All IPC channels must be defined in [src/modules/ipcManager.ts](mdc:src/modules/ipcManager.ts)
+- Use `ipcMain.handle()` for async operations that return values
+- Use `ipcMain.on()` for fire-and-forget operations
+- Preload script exposes safe APIs via [src/preload.ts](mdc:src/preload.ts)
+
+## Electron Security
+
+- **Never** enable `nodeIntegration` in browserWindow
+- Always use `contextIsolation: true`
+- All main process access goes through preload script
+- Use proper CSP headers for renderer security
+
+## Settings Management
+
+- Settings are stored as JSON using [src/modules/settingsManager.ts](mdc:src/modules/settingsManager.ts)
+- Always provide default values in `AppSettings` interface
+- Use convenience methods like `updateWindowSize()` for common operations
+- Settings auto-save on changes
+
+## Shortcuts and Context Menu
+
+- Register shortcuts through [src/modules/shortcutManager.ts](mdc:src/modules/shortcutManager.ts)
+- Platform-specific shortcuts (Cmd on macOS, Ctrl on Windows/Linux)
+- Context menu items defined in [src/modules/contextMenuManager.ts](mdc:src/modules/contextMenuManager.ts)
+- Support both left-click and right-click behaviors
+
+## Build and Development
+
+- Use `npm run dev` for development with hot reload
+- Run `npm run lint` and `npm run format` before commits
+- Build commands: `npm run build` → `npm run package`
+- ESLint config in [.eslintrc.js](mdc:.eslintrc.js) enforces code quality
+- Prettier config in [.prettierrc.js](mdc:.prettierrc.js) ensures consistent formatting
+
+## File Naming Conventions
+
+- React components: PascalCase (e.g., `HelloWorld.tsx`)
+- Managers: camelCase ending in "Manager" (e.g., `settingsManager.ts`)
+- CSS files: match component name (e.g., `HelloWorld.css`)
+- Constants: camelCase for variables, PascalCase for types
+
+## Error Handling
+
+- Use [ErrorBoundary](mdc:src/renderer/components/ErrorBoundary.tsx) for React errors
+- Console.log is allowed (configured in ESLint)
+- Graceful degradation for optional features like UpdaterManager
+- Always provide user-friendly error messages
+
+## Window Management
+
+- Window size persisted automatically via settings
+- Support `hideOnBlur` setting for auto-hide behavior
+- Prevent window close, hide instead (except when quitting)
+- Support show/hide via shortcuts and tray interactions
+
+## CSS and Styling
+
+- Use CSS custom properties for theming
+- Component-specific styles in matching `.css` files
+- Global styles in [src/renderer/App.css](mdc:src/renderer/App.css)
+- Responsive design principles for resizable windows
+
+## Platform Considerations
+
+- macOS: Support dock visibility toggle, proper entitlements
+- Windows/Linux: Handle different shortcut conventions
+- Use platform-specific paths and behaviors where needed
+- Test on multiple platforms before release
+
+## File Documentation Rule
+
+**CRITICAL**: Whenever a new file is created in this project, you MUST:
+
+1. **Add a description** of the file's purpose to [.cursor/rules/file-descriptions.mdc](mdc:.cursor/rules/file-descriptions.mdc)
+2. **Include**: What the file does, its role in the application, and key responsibilities
+3. **Format**: Use the existing pattern with proper file linking: `### [filepath](mdc:filepath)`
+4. **Place**: Add the description in the appropriate section (Core Files, Managers, Components, etc.)
+5. **Update immediately** after file creation - this ensures the codebase remains well-documented
+
+This rule ensures every file's purpose is clearly documented for future development and maintenance.

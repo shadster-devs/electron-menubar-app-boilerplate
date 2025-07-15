@@ -1,5 +1,26 @@
 // Shared constants that can be used by both main and renderer processes
 
+export interface UpdaterSettings {
+  autoCheckDownloadAndInstall: boolean;
+}
+
+export interface UpdateInfo {
+  version: string;
+  releaseDate: string;
+  releaseNotes: string[];
+  downloadedFile?: string;
+}
+
+export interface UpdateStatus {
+  checking: boolean;
+  available: boolean;
+  downloading: boolean;
+  downloaded: boolean;
+  error?: string;
+  progress?: number;
+  updateInfo?: UpdateInfo;
+}
+
 export interface AppSettings {
   theme: 'light' | 'dark';
   autoStart: boolean;
@@ -14,9 +35,7 @@ export interface AppSettings {
     width: number;
     height: number;
   };
-  updater: {
-    autoCheckDownloadAndInstall: boolean;
-  };
+  updater: UpdaterSettings;
   lastUpdateCheck?: number; // Timestamp of last update check
 }
 
@@ -63,8 +82,8 @@ export interface ElectronAPI {
   hideWindow: () => Promise<boolean>;
 
   // Updater API
-  checkForUpdates: () => Promise<void>;
-  downloadUpdate: () => Promise<void>;
-  installUpdate: () => Promise<void>;
-  getUpdateStatus: () => Promise<any>;
+  checkForUpdates: () => Promise<{ success: boolean; error?: string }>;
+  downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
+  installUpdate: () => Promise<{ success: boolean; error?: string }>;
+  getUpdateStatus: () => Promise<UpdateStatus | null>;
 }
