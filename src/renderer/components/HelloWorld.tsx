@@ -20,7 +20,7 @@ const HelloWorld: React.FC = () => {
       <div className='welcome-message'>
         <p>Welcome to your Electron Menubar Boilerplate!</p>
         <p>
-          This is a simple React TypeScript application running in the menubar.
+          This is a simple Electron React TypeScript application running in the menubar.
         </p>
       </div>
       <p>
