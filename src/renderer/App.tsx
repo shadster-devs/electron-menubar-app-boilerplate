@@ -16,7 +16,7 @@ const App: React.FC = () => {
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
 
   // Use centralized update status hook
-  const { updateStatus } = useUpdateStatus();
+  const { updaterState } = useUpdateStatus();
 
   useEffect(() => {
     // Load settings on app start
@@ -25,47 +25,27 @@ const App: React.FC = () => {
 
   // Handle update status changes for toast notifications
   useEffect(() => {
-    if (!updateStatus) return;
+    if (!updaterState) return;
 
-    // Show toast when checking starts
-    if (updateStatus.checking) {
-      (window as any).showToast?.('Checking for updates...', 'info');
+    switch (updaterState.status) {
+      case 'checking':
+        (window as any).showToast?.('Checking for updates...', 'info');
+        break;
+      case 'idle':
+        (window as any).showToast?.('No updates available', 'success');
+        break;
+      case 'error':
+        (window as any).showToast?.(`Update error: ${updaterState.error}`, 'error');
+        break;
+      case 'downloaded':
+        // Let macOS handle update notifications natively
+        console.log('Update downloaded, ready for install via macOS notification');
+        break;
+      default:
+        // No toast for other states
+        break;
     }
-
-    // Show toast when no update is available
-    if (
-      !updateStatus.checking &&
-      !updateStatus.available &&
-      !updateStatus.error
-    ) {
-      (window as any).showToast?.('No updates available', 'success');
-    }
-
-    // Show toast for errors
-    if (updateStatus.error) {
-      (window as any).showToast?.(
-        `Update error: ${updateStatus.error}`,
-        'error'
-      );
-    }
-
-    // Show notification when update is downloaded
-    if (
-      updateStatus.downloaded &&
-      !updateStatus.error &&
-      updateStatus.updateInfo
-    ) {
-      // Let macOS handle update notifications natively
-      console.log(
-        'Update downloaded, ready for install via macOS notification'
-      );
-    }
-  }, [
-    updateStatus?.checking,
-    updateStatus?.available,
-    updateStatus?.error,
-    updateStatus?.downloaded,
-  ]);
+  }, [updaterState?.status]);
 
   // Apply theme to document element whenever settings change
   useEffect(() => {

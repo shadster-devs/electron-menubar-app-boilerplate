@@ -1,130 +1,100 @@
 import { useState, useEffect } from 'react';
-import type { UpdateStatus } from '../../shared/constants';
+import type { UpdaterState, UpdateInfo, UpdateTrigger } from '../../shared/constants';
 
 export interface UseUpdateStatusResult {
-  updateStatus: UpdateStatus | null;
-  isCheckingForUpdates: boolean;
-  updateProgress: number;
-  currentUpdateInfo: any;
-  checkForUpdates: () => Promise<void>;
+  updaterState: UpdaterState | null;
+  isChecking: boolean;
+  isAvailable: boolean;
+  isDownloading: boolean;
+  isDownloaded: boolean;
+  error: string | null;
+  progress: number;
+  updateInfo: UpdateInfo | null;
+  checkForUpdates: (triggerSource?: UpdateTrigger) => Promise<void>;
   downloadUpdate: () => Promise<void>;
   installUpdate: () => Promise<void>;
 }
 
 export const useUpdateStatus = (): UseUpdateStatusResult => {
-  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
-  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState<number>(0);
-  const [currentUpdateInfo, setCurrentUpdateInfo] = useState<any>(null);
+  const [updaterState, setUpdaterState] = useState<UpdaterState | null>(null);
 
   useEffect(() => {
-    const handleUpdateStatus = (event: MessageEvent) => {
-      // Ensure event is from our app
-      if (
-        event.origin !== window.location.origin &&
-        event.origin !== 'file://'
-      ) {
-        return;
-      }
-
-      if (event.data?.type === 'updater:status') {
-        const status = event.data.status as UpdateStatus;
-        console.log('Update status received:', status);
-
-        // Update all related state
-        setUpdateStatus(status);
-        setIsCheckingForUpdates(status.checking || false);
-
-        // Update progress
-        if (typeof status.progress === 'number') {
-          setUpdateProgress(status.progress);
-        } else if (!status.downloading && !status.checking) {
-          setUpdateProgress(0);
-        }
-
-        // Update info
-        if (status.updateInfo) {
-          setCurrentUpdateInfo(status.updateInfo);
-        }
-      }
+    // Use window.electronAPI for IPC events
+    const electronAPI = (window as any).electronAPI;
+    if (!electronAPI || !electronAPI.on) {
+      // Not running in Electron, skip event subscription
+      return;
+    }
+    const handler = (_event: any, state: UpdaterState) => {
+      setUpdaterState(state);
     };
+    // Listen for updater:status events
+    electronAPI.on('updater:status', handler);
 
-    // Listen for update status messages
-    window.addEventListener('message', handleUpdateStatus);
-
-    // Load initial status
-    loadInitialUpdateStatus();
+    // Load initial state
+    loadInitialUpdaterState();
 
     return () => {
-      window.removeEventListener('message', handleUpdateStatus);
+      electronAPI.off?.('updater:status', handler);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadInitialUpdateStatus = async () => {
+  const loadInitialUpdaterState = async () => {
     try {
-      const status = await window.electronAPI?.getUpdateStatus();
-      if (status) {
-        setUpdateStatus(status);
-        setIsCheckingForUpdates(status.checking || false);
-        setUpdateProgress(status.progress || 0);
-        if (status.updateInfo) {
-          setCurrentUpdateInfo(status.updateInfo);
-        }
-      }
+      const state = await (window as any).electronAPI?.getUpdateStatus();
+      if (state) setUpdaterState(state);
     } catch (error) {
-      console.error('Error loading initial update status:', error);
+      console.error('Error loading updater state:', error);
     }
   };
 
-  const checkForUpdates = async (): Promise<void> => {
-    // Don't start new check if already checking
-    if (isCheckingForUpdates) {
-      console.log('Update check already in progress, skipping...');
-      return;
-    }
-
+  const checkForUpdates = async (triggerSource: UpdateTrigger = 'auto') => {
     try {
-      console.log('UI: Triggering update check...');
-      const result = await window.electronAPI?.checkForUpdates();
-
-      if (result && !result.success) {
-        console.error('Update check failed:', result.error);
-        // The error will be handled by the status listener
-      }
+      await (window as any).electronAPI?.checkForUpdates(triggerSource);
     } catch (error) {
       console.error('Error checking for updates:', error);
     }
   };
 
-  const downloadUpdate = async (): Promise<void> => {
+  const downloadUpdate = async () => {
     try {
-      const result = await window.electronAPI?.downloadUpdate();
-
-      if (result && !result.success) {
-        console.error('Update download failed:', result.error);
-      }
+      await (window as any).electronAPI?.downloadUpdate();
     } catch (error) {
       console.error('Error downloading update:', error);
     }
   };
 
-  const installUpdate = async (): Promise<void> => {
+  const installUpdate = async () => {
     try {
-      const result = await window.electronAPI?.installUpdate();
-
-      if (result && !result.success) {
-        console.error('Update install failed:', result.error);
-      }
+      await (window as any).electronAPI?.installUpdate();
     } catch (error) {
       console.error('Error installing update:', error);
     }
   };
 
+  // Derived helpers
+  const isChecking = updaterState?.status === 'checking';
+  const isAvailable = updaterState?.status === 'available';
+  const isDownloading = updaterState?.status === 'downloading';
+  const isDownloaded = updaterState?.status === 'downloaded';
+  const error = updaterState?.status === 'error' ? updaterState.error : null;
+  const progress = updaterState?.status === 'downloading' ? updaterState.progress : 0;
+  const updateInfo =
+    updaterState &&
+    (updaterState.status === 'available' || updaterState.status === 'downloading' || updaterState.status === 'downloaded')
+      ? updaterState.info
+      : null;
+
   return {
-    updateStatus,
-    isCheckingForUpdates,
-    updateProgress,
-    currentUpdateInfo,
+    updaterState,
+    isChecking,
+    isAvailable,
+    isDownloading,
+    isDownloaded,
+    error,
+    progress,
+    updateInfo,
     checkForUpdates,
     downloadUpdate,
     installUpdate,

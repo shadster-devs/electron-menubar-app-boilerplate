@@ -137,7 +137,7 @@ export class IPCManager {
     }
 
     // Update updater settings
-    this.updaterManager.updateSettings();
+    // this.updaterManager.updateSettings(); // This line is removed as per the edit hint.
   }
 
   private setupShortcutHandlers(): void {
@@ -221,52 +221,33 @@ export class IPCManager {
   }
 
   private setupUpdaterHandlers(): void {
-    ipcMain.handle('updater:checkForUpdates', async () => {
+    // Updater API
+    ipcMain.handle('updater:checkForUpdates', async (event, triggerSource: 'auto' | 'context' | 'settings' = 'auto') => {
       try {
-        await this.updaterManager.checkForUpdates();
+        await this.updaterManager.checkForUpdates(triggerSource);
         return { success: true };
       } catch (error) {
-        console.error('Error checking for updates:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     });
-
     ipcMain.handle('updater:downloadUpdate', async () => {
       try {
         await this.updaterManager.downloadUpdate();
         return { success: true };
       } catch (error) {
-        console.error('Error downloading update:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     });
-
     ipcMain.handle('updater:installUpdate', async () => {
       try {
         this.updaterManager.installUpdate();
         return { success: true };
       } catch (error) {
-        console.error('Error installing update:', error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        };
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     });
-
     ipcMain.handle('updater:getStatus', async () => {
-      try {
-        return this.updaterManager.getUpdateStatus();
-      } catch (error) {
-        console.error('Error getting update status:', error);
-        return null;
-      }
+      return this.updaterManager.getStatus();
     });
   }
 

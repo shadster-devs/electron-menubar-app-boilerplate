@@ -1,289 +1,168 @@
 import { dialog, BrowserWindow } from 'electron';
 import { autoUpdater } from 'electron-updater';
-import type { UpdateStatus } from '../shared/constants';
+import type { UpdaterState, UpdateInfo, UpdateTrigger } from '../shared/constants';
 import { SettingsManager } from './settingsManager';
 
 export class UpdaterManager {
+  private state: UpdaterState = { status: 'idle' };
   private settingsManager: SettingsManager;
-  private updateStatus: UpdateStatus = {
-    checking: false,
-    available: false,
-    downloading: false,
-    downloaded: false,
-  };
-  private checkOnStartupTimer?: NodeJS.Timeout;
   private lastCheckTime: number = 0;
-  private readonly CHECK_INTERVAL_24H = 24 * 60 * 60 * 1000; // 24 hours in ms
+  private checkOnStartupTimer?: NodeJS.Timeout;
+  private currentTrigger: UpdateTrigger = 'auto';
 
   constructor(settingsManager: SettingsManager) {
     this.settingsManager = settingsManager;
-    this.initializeUpdater();
-    this.setupEventHandlers();
+    this.init();
   }
 
-  private initializeUpdater(): void {
-    try {
-      // Configure auto-updater - let electron-updater handle all the complexity
-      autoUpdater.autoDownload = false; // Manual download control
-      autoUpdater.autoInstallOnAppQuit = false; // Manual install control
-      autoUpdater.allowDowngrade = false; // Security: prevent downgrades
-
-      // Load last check time from settings
-      this.loadLastCheckTime();
-
-      // Schedule startup check if needed
-      this.scheduleStartupCheck();
-
-      console.log('UpdaterManager initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize UpdaterManager:', error);
-      this.updateStatus.error = 'Failed to initialize updater';
-      this.sendStatusToRenderer();
-    }
+  private async init() {
+    this.lastCheckTime = (await this.settingsManager.getSettings()).lastUpdateCheck || 0;
+    this.setupAutoUpdaterEvents();
+    this.scheduleStartupCheck();
   }
 
-  private async loadLastCheckTime(): Promise<void> {
-    try {
-      const settings = await this.settingsManager.getSettings();
-      this.lastCheckTime = settings.lastUpdateCheck || 0;
-    } catch (error) {
-      console.error('Error loading last check time:', error);
-      this.lastCheckTime = 0;
-    }
+  private setState(newState: UpdaterState) {
+    this.state = newState;
+    this.sendStateToRenderer();
   }
 
-  private async saveLastCheckTime(): Promise<void> {
-    try {
-      const settings = await this.settingsManager.getSettings();
-      const updatedSettings = {
-        ...settings,
-        lastUpdateCheck: Date.now(),
-      };
-      await this.settingsManager.saveSettings(updatedSettings);
-      this.lastCheckTime = Date.now();
-    } catch (error) {
-      console.error('Error saving last check time:', error);
-    }
+  private sendStateToRenderer() {
+    BrowserWindow.getAllWindows().forEach(win =>
+      win.webContents.send('updater:status', this.state)
+    );
   }
 
-  private shouldCheckForUpdates(): boolean {
-    const now = Date.now();
-    const timeSinceLastCheck = now - this.lastCheckTime;
-    return timeSinceLastCheck >= this.CHECK_INTERVAL_24H;
-  }
-
-  private sendStatusToRenderer(): void {
-    // Send update status to all renderer windows
-    BrowserWindow.getAllWindows().forEach(window => {
-      window.webContents.send('updater:status', this.updateStatus);
-    });
-  }
-
-  private showInstallDialog(): void {
-    const options = {
-      type: 'info' as const,
-      buttons: ['Install and Restart', 'Install Later'],
-      defaultId: 0,
-      title: 'Update Downloaded',
-      message: `Version ${this.updateStatus.updateInfo?.version} has been downloaded.`,
-      detail: 'Would you like to install it now? The app will restart.',
-    };
-
-    dialog.showMessageBox(options).then(result => {
-      if (result.response === 0) {
-        this.installUpdate();
-      }
-    });
-  }
-
-  private setupEventHandlers(): void {
-    // Update checking
-    autoUpdater.on('checking-for-update', () => {
-      this.updateStatus.checking = true;
-      this.updateStatus.error = undefined;
-      this.sendStatusToRenderer();
-      console.log('Checking for update...');
-    });
-
-    // Update available
+  private setupAutoUpdaterEvents() {
+    autoUpdater.on('checking-for-update', () => this.setState({ status: 'checking' }));
     autoUpdater.on('update-available', info => {
-      this.updateStatus.checking = false;
-      this.updateStatus.available = true;
-
-      // Convert electron-updater info to our format
-      this.updateStatus.updateInfo = {
+      const updateInfo: UpdateInfo = {
         version: info.version,
         releaseDate: info.releaseDate,
         releaseNotes: this.parseReleaseNotes(info),
       };
-      this.sendStatusToRenderer();
-
-      // Removed auto-download - user will manually click Download button
-      console.log('Update available:', info.version);
+      this.setState({ status: 'available', info: updateInfo });
+      if (this.currentTrigger === 'auto') this.downloadUpdate();
+      else this.promptDownload(updateInfo);
     });
-
-    // Update not available
-    autoUpdater.on('update-not-available', info => {
-      this.updateStatus.checking = false;
-      this.updateStatus.available = false;
-      this.sendStatusToRenderer();
-      console.log('Update not available. Current version:', info.version);
-
-      // Save the successful check time
+    autoUpdater.on('update-not-available', () => {
+      this.setState({ status: 'idle' });
       this.saveLastCheckTime();
     });
-
-    // Update download progress
-    autoUpdater.on('download-progress', progressObj => {
-      this.updateStatus.downloading = true;
-      this.updateStatus.progress = Math.round(progressObj.percent);
-      this.sendStatusToRenderer();
-      console.log(`Download progress: ${Math.round(progressObj.percent)}%`);
+    autoUpdater.on('download-progress', progress => {
+      if (
+        this.state.status === 'downloading' &&
+        this.state.info
+      ) {
+        this.setState({
+          status: 'downloading',
+          progress: Math.round(progress.percent),
+          info: this.state.info,
+        });
+      }
     });
-
-    // Update downloaded
     autoUpdater.on('update-downloaded', info => {
-      this.updateStatus.downloading = false;
-      this.updateStatus.downloaded = true;
-      this.updateStatus.updateInfo = {
-        ...this.updateStatus.updateInfo!,
+      const updateInfo: UpdateInfo = {
         version: info.version,
         releaseDate: info.releaseDate,
+        releaseNotes: this.parseReleaseNotes(info),
         downloadedFile: (info as any).downloadedFile,
       };
-      this.sendStatusToRenderer();
-      console.log('Update downloaded:', info.version);
-
-      // Save the successful check time
+      this.setState({ status: 'downloaded', info: updateInfo });
       this.saveLastCheckTime();
-
-      // Show install dialog
-      this.showInstallDialog();
+      this.promptInstall(updateInfo);
     });
-
-    // Update error - let electron-updater handle retries automatically
     autoUpdater.on('error', err => {
-      this.updateStatus.checking = false;
-      this.updateStatus.downloading = false;
-      this.updateStatus.error = err.message;
-      this.sendStatusToRenderer();
-      console.error('Update error:', err);
+      this.setState({ status: 'error', error: err.message });
     });
   }
 
   private parseReleaseNotes(info: any): string[] {
-    // Simple release notes parsing - electron-updater usually provides this
-    if (info.releaseNotes) {
-      if (typeof info.releaseNotes === 'string') {
-        return info.releaseNotes
-          .split('\n')
-          .filter((line: string) => line.trim().length > 0);
-      }
-      if (Array.isArray(info.releaseNotes)) {
-        return info.releaseNotes;
-      }
+    if (typeof info.releaseNotes === 'string') {
+      return info.releaseNotes.split('\n').filter(Boolean);
     }
-
-    // Fallback
-    return [`Version ${info.version} is now available.`];
+    if (Array.isArray(info.releaseNotes)) {
+      return info.releaseNotes;
+    }
+    return [];
   }
 
-  private async scheduleStartupCheck(): Promise<void> {
+  private async scheduleStartupCheck() {
     const settings = await this.settingsManager.getSettings();
-
-    if (settings.updater?.autoCheckDownloadAndInstall) {
-      // Only check if 24 hours have passed since last check
-      if (this.shouldCheckForUpdates()) {
-        console.log('Scheduling update check - 24h interval met');
-        // Check for updates 10 seconds after startup
-        this.checkOnStartupTimer = setTimeout(() => {
-          this.checkForUpdates();
-        }, 10000);
-      } else {
-        const timeUntilNextCheck =
-          this.CHECK_INTERVAL_24H - (Date.now() - this.lastCheckTime);
-        const hoursUntilNext = Math.round(
-          timeUntilNextCheck / (1000 * 60 * 60)
-        );
-        console.log(
-          `Skipping update check - next check in ${hoursUntilNext} hours`
-        );
-      }
+    if (settings.updater?.autoCheckDownloadAndInstall && this.shouldCheckForUpdates()) {
+      this.checkOnStartupTimer = setTimeout(() => this.checkForUpdates('auto'), 10000);
     }
   }
 
-  // Public methods
-  async checkForUpdates(): Promise<void> {
-    console.log('Manual update check triggered');
+  private shouldCheckForUpdates(): boolean {
+    return Date.now() - this.lastCheckTime > 24 * 60 * 60 * 1000;
+  }
 
-    // Prevent multiple simultaneous checks
-    if (this.updateStatus.checking) {
-      console.log('Update check already in progress, skipping...');
-      return;
-    }
+  private async saveLastCheckTime() {
+    const settings = await this.settingsManager.getSettings();
+    await this.settingsManager.saveSettings({ ...settings, lastUpdateCheck: Date.now() });
+    this.lastCheckTime = Date.now();
+  }
 
+  // --- Public API ---
+
+  getStatus(): UpdaterState {
+    return this.state;
+  }
+
+  async checkForUpdates(trigger: UpdateTrigger = 'auto') {
+    this.currentTrigger = trigger;
     try {
-      console.log('Calling autoUpdater.checkForUpdates()...');
       await autoUpdater.checkForUpdates();
-    } catch (error) {
-      console.error('Error checking for updates:', error);
-      this.updateStatus.checking = false;
-      this.updateStatus.error =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.sendStatusToRenderer();
+    } catch (err) {
+      this.setState({ status: 'error', error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  installUpdate(): void {
-    console.log('Installing update and restarting...');
-    try {
-      // Set autoInstallOnAppQuit to true before quitting
-      autoUpdater.autoInstallOnAppQuit = true;
-
-      // Force quit and install immediately
-      autoUpdater.quitAndInstall(false, true);
-    } catch (error) {
-      console.error('Error installing update:', error);
-      this.updateStatus.error = 'Failed to install update';
-      this.sendStatusToRenderer();
-    }
-  }
-
-  downloadUpdate(): void {
-    if (this.updateStatus.available && !this.updateStatus.downloading) {
-      console.log('Starting update download...');
-      this.updateStatus.downloading = true;
-      this.updateStatus.progress = 0;
-      this.sendStatusToRenderer();
+  downloadUpdate() {
+    if (this.state.status === 'available') {
+      this.setState({ status: 'downloading', progress: 0, info: this.state.info });
       autoUpdater.downloadUpdate();
-    } else {
-      console.log('No update available to download or already downloading');
     }
   }
 
-  getUpdateStatus(): UpdateStatus {
-    return { ...this.updateStatus };
-  }
-
-  // Settings-related methods
-  async updateSettings(): Promise<void> {
-    const settings = await this.settingsManager.getSettings();
-
-    // Clear existing timers
-    if (this.checkOnStartupTimer) {
-      clearTimeout(this.checkOnStartupTimer);
-    }
-
-    // Reschedule if needed
-    if (settings.updater?.autoCheckDownloadAndInstall) {
-      this.scheduleStartupCheck();
+  installUpdate() {
+    if (this.state.status === 'downloaded') {
+      try {
+        autoUpdater.quitAndInstall(false, true);
+      } catch (err) {
+        // fallback
+        const { app } = require('electron');
+        app.relaunch();
+        app.exit(0);
+      }
     }
   }
 
-  // Cleanup
-  cleanup(): void {
-    if (this.checkOnStartupTimer) {
-      clearTimeout(this.checkOnStartupTimer);
-    }
+  // --- Dialogs (can be overridden for testing) ---
+
+  protected promptDownload(info: UpdateInfo) {
+    dialog.showMessageBox({
+      type: 'info',
+      buttons: ['Download', 'Later'],
+      defaultId: 0,
+      title: 'Update Available',
+      message: `Version ${info.version} is available.`,
+      detail: `What's new:\n${info.releaseNotes.slice(0, 3).join('\n')}`,
+    }).then(result => {
+      if (result.response === 0) this.downloadUpdate();
+    });
   }
+
+  protected promptInstall(info: UpdateInfo) {
+    dialog.showMessageBox({
+      type: 'info',
+      buttons: ['Install and Restart', 'Later'],
+      defaultId: 0,
+      title: 'Update Ready',
+      message: `Version ${info.version} has been downloaded.`,
+      detail: 'Would you like to install it now? The app will restart.',
+    }).then(result => {
+      if (result.response === 0) this.installUpdate();
+    });}
 }
+

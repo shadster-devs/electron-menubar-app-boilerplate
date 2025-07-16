@@ -1,6 +1,3 @@
----
-description: "File descriptions and purposes in the Electron menubar application"
----
 
 # File Descriptions and Purposes
 
@@ -22,7 +19,7 @@ React application entry point. Sets up the React DOM root and renders the main A
 HTML template for the Electron renderer process. Contains the basic HTML structure and root element for React mounting.
 
 ### [src/renderer/hooks/useUpdateStatus.ts](mdc:src/renderer/hooks/useUpdateStatus.ts)
-Custom React hook that centralizes update status management. Provides unified state and actions for update checking, downloading, and installation while eliminating duplicate event listeners across components.
+Custom React hook for updater state. Subscribes to UpdaterState from the main process via IPC, exposes derived helpers (isChecking, isAvailable, etc.), and provides declarative actions for update checking, downloading, and installation. Designed for use with the new state machine updater flow.
 
 ## Manager Classes (Core Logic)
 
@@ -42,7 +39,7 @@ Manages tray icon context menu. Creates and updates the right-click menu for the
 Handles Inter-Process Communication between main and renderer. Sets up IPC channels, manages message passing, coordinates between different managers, and provides secure communication interface.
 
 ### [src/modules/updaterManager.ts](mdc:src/modules/updaterManager.ts)
-Manages application auto-updates using electron-updater. Handles update checking, downloading, installation, and provides update status to the UI with graceful error handling.
+Manages application auto-updates using electron-updater. Implements a state machine pattern using a discriminated union UpdaterState type. Handles update checking, downloading, installation, and provides update status to the UI via a single IPC channel. All state transitions are explicit, and dialogs are abstracted for testability. Fully decoupled from UI logic.
 
 ## React Components
 
@@ -65,7 +62,7 @@ Welcome/home screen component. Displays main application content, welcome messag
 Styling for the HelloWorld component. Provides main content area styling and layout.
 
 ### [src/renderer/components/Settings.tsx](mdc:src/renderer/components/Settings.tsx)
-Settings panel component. Handles all application settings UI, shortcut recording, theme switching, and settings persistence through IPC calls.
+Settings panel component. Handles all application settings UI, shortcut recording, theme switching, and settings persistence through IPC calls. The Updates section is now a pure function of UpdaterState, showing update status, progress, release notes, and the correct action buttons based on the current updater state. Declarative, robust, and easy to maintain.
 
 ### [src/renderer/components/Settings.css](mdc:src/renderer/components/Settings.css)
 Styling for the Settings component. Provides settings panel layout, form styling, and theme-aware controls.
@@ -84,12 +81,6 @@ Styling for Toast components including animations, positioning, and responsive d
 
 ### [src/renderer/components/ToastContainer.tsx](mdc:src/renderer/components/ToastContainer.tsx)
 Container component that manages multiple toast notifications. Handles toast lifecycle, maximum toast limits, and provides global toast API for easy usage throughout the app.
-
-### [src/renderer/components/UpdateNotification.tsx](mdc:src/renderer/components/UpdateNotification.tsx)
-React component for displaying update download notifications. Shows update version, release notes preview, and install/dismiss actions. Replaces manual DOM manipulation with proper React component structure.
-
-### [src/renderer/components/UpdateNotification.css](mdc:src/renderer/components/UpdateNotification.css)
-Styling for UpdateNotification component including animations, responsive design, and theme-aware styling.
 
 ### [src/renderer/components/ProgressBar.tsx](mdc:src/renderer/components/ProgressBar.tsx)
 Reusable progress bar component with customizable styling, animated stripes, and percentage display. Replaces inline progress bar logic throughout the application.
@@ -146,6 +137,9 @@ Files and directories to exclude from Prettier formatting.
 
 ### [README.md](mdc:README.md)
 Project documentation with setup instructions, architecture overview, and usage guidelines.
+
+### [SETUP.md](mdc:SETUP.md)
+Detailed setup and development instructions for new contributors.
 
 ### [SETUP.md](mdc:SETUP.md)
 Detailed setup and development instructions for new contributors.

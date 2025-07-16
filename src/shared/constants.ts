@@ -11,15 +11,13 @@ export interface UpdateInfo {
   downloadedFile?: string;
 }
 
-export interface UpdateStatus {
-  checking: boolean;
-  available: boolean;
-  downloading: boolean;
-  downloaded: boolean;
-  error?: string;
-  progress?: number;
-  updateInfo?: UpdateInfo;
-}
+export type UpdaterState =
+  | { status: 'idle' }
+  | { status: 'checking' }
+  | { status: 'available'; info: UpdateInfo }
+  | { status: 'downloading'; progress: number; info: UpdateInfo }
+  | { status: 'downloaded'; info: UpdateInfo }
+  | { status: 'error'; error: string };
 
 export interface AppSettings {
   theme: 'light' | 'dark';
@@ -82,8 +80,10 @@ export interface ElectronAPI {
   hideWindow: () => Promise<boolean>;
 
   // Updater API
-  checkForUpdates: () => Promise<{ success: boolean; error?: string }>;
+  checkForUpdates: (triggerSource?: UpdateTrigger) => Promise<{ success: boolean; error?: string }>;
   downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
   installUpdate: () => Promise<{ success: boolean; error?: string }>;
-  getUpdateStatus: () => Promise<UpdateStatus | null>;
+  getUpdateStatus: () => Promise<UpdaterState | null>;
 }
+
+export type UpdateTrigger = 'auto' | 'context' | 'settings';

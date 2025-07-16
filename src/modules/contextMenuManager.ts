@@ -110,12 +110,9 @@ export class ContextMenuManager {
   private async checkForUpdates(): Promise<void> {
     try {
       if (this.updaterManager) {
-        // Direct call to updater manager - much cleaner!
-        await this.updaterManager.checkForUpdates();
+        await this.updaterManager.checkForUpdates('context');
       } else {
-        console.warn(
-          'UpdaterManager not available for context menu update check'
-        );
+        console.warn('UpdaterManager not available for context menu update check');
       }
     } catch (error) {
       console.error('Error triggering update check:', error);

@@ -12,59 +12,53 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
-  // Use centralized update status hook
+  // Use new updater hook
   const {
-    updateStatus,
-    isCheckingForUpdates,
-    updateProgress,
-    currentUpdateInfo,
+    updaterState,
+    isChecking,
+    isAvailable,
+    isDownloading,
+    isDownloaded,
+    error,
+    progress,
+    updateInfo,
     checkForUpdates,
     downloadUpdate,
+    installUpdate,
   } = useUpdateStatus();
 
   // Generate user-friendly status message
   const getUpdateStatusMessage = (): string => {
-    if (!updateStatus) return '';
-
-    if (updateStatus.checking) {
-      return 'Checking for updates...';
-    } else if (updateStatus.downloading) {
-      return `Downloading update... ${updateStatus.progress || 0}%`;
-    } else if (updateStatus.downloaded) {
-      return `Update downloaded: v${updateStatus.updateInfo?.version || 'Unknown'}`;
-    } else if (updateStatus.available) {
-      return `Update available: v${updateStatus.updateInfo?.version || 'Unknown'}`;
-    } else if (updateStatus.error) {
-      if (updateStatus.error.includes('No network')) {
-        return 'No internet connection';
-      } else if (updateStatus.error.includes('timed out')) {
-        return 'Update check timed out';
-      } else if (updateStatus.error.includes('404')) {
-        return 'Update files not found';
-      } else {
-        return `Error: ${updateStatus.error}`;
-      }
-    } else if (
-      !updateStatus.available &&
-      !updateStatus.error &&
-      !updateStatus.checking
-    ) {
-      return 'No updates available';
+    if (!updaterState) return '';
+    switch (updaterState.status) {
+      case 'checking':
+        return 'Checking for updates...';
+      case 'downloading':
+        return `Downloading update... ${progress}%`;
+      case 'downloaded':
+        return `Update downloaded: v${updateInfo?.version || 'Unknown'}`;
+      case 'available':
+        return `Update available: v${updateInfo?.version || 'Unknown'}`;
+      case 'error':
+        if (error?.includes('No network')) return 'No internet connection';
+        if (error?.includes('timed out')) return 'Update check timed out';
+        if (error?.includes('404')) return 'Update files not found';
+        return `Error: ${error}`;
+      case 'idle':
+        return 'No updates available';
+      default:
+        return '';
     }
-
-    return '';
   };
 
   const handleSettingChange = async (key: keyof AppSettings, value: any) => {
     if (!settings) return;
-
     const newSettings = { ...settings, [key]: value };
     await onSettingsChange(newSettings);
   };
 
   const handleShortcutChange = async (shortcutKey: string, value: string) => {
     if (!settings?.shortcuts) return;
-
     const newShortcuts = { ...settings.shortcuts, [shortcutKey]: value };
     const newSettings = { ...settings, shortcuts: newShortcuts };
     await onSettingsChange(newSettings);
@@ -82,41 +76,27 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   };
 
   const handleCheckForUpdates = async (e?: React.MouseEvent) => {
-    // Prevent default behavior and event propagation
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-
-    // Don't start new check if already checking
-    if (isCheckingForUpdates) {
-      console.log('Update check already in progress, skipping...');
-      return;
-    }
-
-    try {
-      console.log('UI: Triggering update check...');
-      await checkForUpdates();
-      console.log('UI: Update check request sent');
-    } catch (error) {
-      console.error('Error checking for updates:', error);
-    }
+    if (isChecking) return;
+    await checkForUpdates('settings');
   };
 
   const handleDownloadUpdate = async () => {
-    try {
-      await downloadUpdate();
-    } catch (error) {
-      console.error('Error downloading update:', error);
-    }
+    await downloadUpdate();
+  };
+
+  const handleInstallUpdate = async () => {
+    await installUpdate();
   };
 
   const renderUpdateProgress = () => {
-    if (!isCheckingForUpdates && updateProgress === 0) return null;
-
+    if (!isDownloading) return null;
     return (
       <ProgressBar
-        progress={updateProgress}
+        progress={progress}
         showPercentage={true}
         className='compact'
       />
@@ -124,8 +104,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
   };
 
   const renderReleaseNotes = () => {
-    if (!currentUpdateInfo?.releaseNotes?.length) return null;
-
+    if (!updateInfo?.releaseNotes?.length) return null;
     return (
       <div
         style={{
@@ -146,9 +125,9 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
             marginBottom: '4px',
           }}
         >
-          What&apos;s New in v{currentUpdateInfo.version}:
+          What&apos;s New in v{updateInfo.version}:
         </div>
-        {currentUpdateInfo.releaseNotes.map((note: string, index: number) => (
+        {updateInfo.releaseNotes.map((note: string, index: number) => (
           <div
             key={index}
             style={{
@@ -361,19 +340,12 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
               </div>
               <div className='setting-control'>
                 <div className='update-buttons'>
-                  {!updateStatus?.available &&
-                    !updateStatus?.downloading &&
-                    !updateStatus?.downloaded && (
-                      <button
-                        className='macos-button primary'
-                        onClick={handleCheckForUpdates}
-                        disabled={isCheckingForUpdates}
-                      >
-                        {isCheckingForUpdates ? 'Checking...' : 'Check Now'}
-                      </button>
-                    )}
-
-                  {updateStatus?.error && !isCheckingForUpdates && (
+                  {isChecking && (
+                    <button className='macos-button primary' disabled>
+                      Checking...
+                    </button>
+                  )}
+                  {error && !isChecking && (
                     <button
                       className='macos-button secondary'
                       onClick={handleCheckForUpdates}
@@ -381,21 +353,33 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                       Retry
                     </button>
                   )}
-
-                  {updateStatus?.available &&
-                    !updateStatus?.downloading &&
-                    !updateStatus?.downloaded && (
-                      <button
-                        className='macos-button primary'
-                        onClick={handleDownloadUpdate}
-                      >
-                        Download Update
-                      </button>
-                    )}
-
-                  {updateStatus?.downloading && (
-                    <button className='macos-button primary' disabled={true}>
+                  {(!isAvailable && !isDownloading && !isDownloaded && !isChecking && !error) && (
+                    <button
+                      className='macos-button primary'
+                      onClick={handleCheckForUpdates}
+                    >
+                      Check Now
+                    </button>
+                  )}
+                  {isAvailable && !isDownloading && !isDownloaded && (
+                    <button
+                      className='macos-button primary'
+                      onClick={handleDownloadUpdate}
+                    >
+                      Download Update
+                    </button>
+                  )}
+                  {isDownloading && (
+                    <button className='macos-button primary' disabled>
                       Downloading...
+                    </button>
+                  )}
+                  {isDownloaded && (
+                    <button
+                      className='macos-button primary'
+                      onClick={handleInstallUpdate}
+                    >
+                      Install and Restart
                     </button>
                   )}
                 </div>
