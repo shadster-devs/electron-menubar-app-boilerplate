@@ -35,11 +35,16 @@ const App: React.FC = () => {
         (window as any).showToast?.('No updates available', 'success');
         break;
       case 'error':
-        (window as any).showToast?.(`Update error: ${updaterState.error}`, 'error');
+        (window as any).showToast?.(
+          `Update error: ${updaterState.error}`,
+          'error'
+        );
         break;
       case 'downloaded':
         // Let macOS handle update notifications natively
-        console.log('Update downloaded, ready for install via macOS notification');
+        console.log(
+          'Update downloaded, ready for install via macOS notification'
+        );
         break;
       default:
         // No toast for other states

@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { UpdaterState, UpdateInfo, UpdateTrigger } from '../../shared/constants';
+import type {
+  UpdaterState,
+  UpdateInfo,
+  UpdateTrigger,
+} from '../../shared/constants';
 
 export interface UseUpdateStatusResult {
   updaterState: UpdaterState | null;
@@ -79,10 +83,13 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
   const isDownloading = updaterState?.status === 'downloading';
   const isDownloaded = updaterState?.status === 'downloaded';
   const error = updaterState?.status === 'error' ? updaterState.error : null;
-  const progress = updaterState?.status === 'downloading' ? updaterState.progress : 0;
+  const progress =
+    updaterState?.status === 'downloading' ? updaterState.progress : 0;
   const updateInfo =
     updaterState &&
-    (updaterState.status === 'available' || updaterState.status === 'downloading' || updaterState.status === 'downloaded')
+    (updaterState.status === 'available' ||
+      updaterState.status === 'downloading' ||
+      updaterState.status === 'downloaded')
       ? updaterState.info
       : null;
 

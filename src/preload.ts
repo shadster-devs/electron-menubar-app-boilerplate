@@ -34,7 +34,8 @@ const electronAPI: ElectronAPI = {
   hideWindow: () => ipcRenderer.invoke('app:hide'),
 
   // Updater API
-  checkForUpdates: (triggerSource?: 'auto' | 'context' | 'settings') => ipcRenderer.invoke('updater:checkForUpdates', triggerSource),
+  checkForUpdates: (triggerSource?: 'auto' | 'context' | 'settings') =>
+    ipcRenderer.invoke('updater:checkForUpdates', triggerSource),
   downloadUpdate: () => ipcRenderer.invoke('updater:downloadUpdate'),
   installUpdate: () => ipcRenderer.invoke('updater:installUpdate'),
   getUpdateStatus: () => ipcRenderer.invoke('updater:getStatus'),
