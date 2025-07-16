@@ -353,14 +353,18 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                       Retry
                     </button>
                   )}
-                  {(!isAvailable && !isDownloading && !isDownloaded && !isChecking && !error) && (
-                    <button
-                      className='macos-button primary'
-                      onClick={handleCheckForUpdates}
-                    >
-                      Check Now
-                    </button>
-                  )}
+                  {!isAvailable &&
+                    !isDownloading &&
+                    !isDownloaded &&
+                    !isChecking &&
+                    !error && (
+                      <button
+                        className='macos-button primary'
+                        onClick={handleCheckForUpdates}
+                      >
+                        Check Now
+                      </button>
+                    )}
                   {isAvailable && !isDownloading && !isDownloaded && (
                     <button
                       className='macos-button primary'

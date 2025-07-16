@@ -80,7 +80,9 @@ export interface ElectronAPI {
   hideWindow: () => Promise<boolean>;
 
   // Updater API
-  checkForUpdates: (triggerSource?: UpdateTrigger) => Promise<{ success: boolean; error?: string }>;
+  checkForUpdates: (
+    triggerSource?: UpdateTrigger
+  ) => Promise<{ success: boolean; error?: string }>;
   downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
   installUpdate: () => Promise<{ success: boolean; error?: string }>;
   getUpdateStatus: () => Promise<UpdaterState | null>;

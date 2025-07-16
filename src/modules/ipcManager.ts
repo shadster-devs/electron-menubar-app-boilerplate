@@ -222,20 +222,32 @@ export class IPCManager {
 
   private setupUpdaterHandlers(): void {
     // Updater API
-    ipcMain.handle('updater:checkForUpdates', async (event, triggerSource: 'auto' | 'context' | 'settings' = 'auto') => {
-      try {
-        await this.updaterManager.checkForUpdates(triggerSource);
-        return { success: true };
-      } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+    ipcMain.handle(
+      'updater:checkForUpdates',
+      async (
+        event,
+        triggerSource: 'auto' | 'context' | 'settings' = 'auto'
+      ) => {
+        try {
+          await this.updaterManager.checkForUpdates(triggerSource);
+          return { success: true };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          };
+        }
       }
-    });
+    );
     ipcMain.handle('updater:downloadUpdate', async () => {
       try {
         await this.updaterManager.downloadUpdate();
         return { success: true };
       } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     });
     ipcMain.handle('updater:installUpdate', async () => {
@@ -243,7 +255,10 @@ export class IPCManager {
         this.updaterManager.installUpdate();
         return { success: true };
       } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : String(error) };
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
     });
     ipcMain.handle('updater:getStatus', async () => {
