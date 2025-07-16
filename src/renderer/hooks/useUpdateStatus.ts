@@ -1,22 +1,15 @@
 import { useState, useEffect } from 'react';
-import type {
-  UpdaterState,
-  UpdateInfo,
-  UpdateTrigger,
-} from '../../shared/constants';
+import type { UpdaterState, UpdateInfo } from '../../shared/constants';
 
-export interface UseUpdateStatusResult {
+interface UseUpdateStatusResult {
   updaterState: UpdaterState | null;
   isChecking: boolean;
-  isAvailable: boolean;
-  isDownloading: boolean;
-  isDownloaded: boolean;
+  hasError: boolean;
+  isUpdateAvailable: boolean;
   error: string | null;
-  progress: number;
   updateInfo: UpdateInfo | null;
-  checkForUpdates: (triggerSource?: UpdateTrigger) => Promise<void>;
-  downloadUpdate: () => Promise<void>;
-  installUpdate: () => Promise<void>;
+  checkForUpdates: () => Promise<void>;
+  openDownloadUrl: (url: string) => Promise<void>;
 }
 
 export const useUpdateStatus = (): UseUpdateStatusResult => {
@@ -29,9 +22,11 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
       // Not running in Electron, skip event subscription
       return;
     }
+
     const handler = (_event: any, state: UpdaterState) => {
       setUpdaterState(state);
     };
+
     // Listen for updater:status events
     electronAPI.on('updater:status', handler);
 
@@ -53,57 +48,38 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
     }
   };
 
-  const checkForUpdates = async (triggerSource: UpdateTrigger = 'auto') => {
+  const checkForUpdates = async () => {
     try {
-      await (window as any).electronAPI?.checkForUpdates(triggerSource);
+      await (window as any).electronAPI?.checkForUpdates();
     } catch (error) {
       console.error('Error checking for updates:', error);
     }
   };
 
-  const downloadUpdate = async () => {
+  const openDownloadUrl = async (url: string) => {
     try {
-      await (window as any).electronAPI?.downloadUpdate();
+      await (window as any).electronAPI?.openDownloadUrl(url);
     } catch (error) {
-      console.error('Error downloading update:', error);
-    }
-  };
-
-  const installUpdate = async () => {
-    try {
-      await (window as any).electronAPI?.installUpdate();
-    } catch (error) {
-      console.error('Error installing update:', error);
+      console.error('Error opening download URL:', error);
     }
   };
 
   // Derived helpers
   const isChecking = updaterState?.status === 'checking';
-  const isAvailable = updaterState?.status === 'available';
-  const isDownloading = updaterState?.status === 'downloading';
-  const isDownloaded = updaterState?.status === 'downloaded';
+  const hasError = updaterState?.status === 'error';
+  const isUpdateAvailable = updaterState?.status === 'available';
   const error = updaterState?.status === 'error' ? updaterState.error : null;
-  const progress =
-    updaterState?.status === 'downloading' ? updaterState.progress : 0;
   const updateInfo =
-    updaterState &&
-    (updaterState.status === 'available' ||
-      updaterState.status === 'downloading' ||
-      updaterState.status === 'downloaded')
-      ? updaterState.info
-      : null;
+    updaterState?.status === 'available' ? updaterState.info : null;
 
   return {
     updaterState,
     isChecking,
-    isAvailable,
-    isDownloading,
-    isDownloaded,
+    hasError,
+    isUpdateAvailable,
     error,
-    progress,
     updateInfo,
     checkForUpdates,
-    downloadUpdate,
-    installUpdate,
+    openDownloadUrl,
   };
 };

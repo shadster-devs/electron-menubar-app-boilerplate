@@ -221,48 +221,17 @@ export class IPCManager {
   }
 
   private setupUpdaterHandlers(): void {
-    // Updater API
-    ipcMain.handle(
-      'updater:checkForUpdates',
-      async (
-        event,
-        triggerSource: 'auto' | 'context' | 'settings' = 'auto'
-      ) => {
-        try {
-          await this.updaterManager.checkForUpdates(triggerSource);
-          return { success: true };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          };
-        }
-      }
-    );
-    ipcMain.handle('updater:downloadUpdate', async () => {
-      try {
-        await this.updaterManager.downloadUpdate();
-        return { success: true };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
+    // Enhanced updater API
+    ipcMain.handle('updater:checkForUpdates', async () => {
+      return await this.updaterManager.checkForUpdates();
     });
-    ipcMain.handle('updater:installUpdate', async () => {
-      try {
-        this.updaterManager.installUpdate();
-        return { success: true };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
+
     ipcMain.handle('updater:getStatus', async () => {
       return this.updaterManager.getStatus();
+    });
+
+    ipcMain.handle('updater:openDownloadUrl', async (event, url: string) => {
+      return await this.updaterManager.openDownloadUrl(url);
     });
   }
 

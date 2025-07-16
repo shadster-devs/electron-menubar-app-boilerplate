@@ -1,8 +1,7 @@
 import { Palette, Settings2, Keyboard, Download } from 'lucide-react';
 import React from 'react';
-import type { AppSettings } from '../../shared/constants';
-import { useUpdateStatus } from '../hooks/useUpdateStatus';
-import ProgressBar from './ProgressBar';
+import type { AppSettings } from '../../../shared/constants';
+import { useUpdateStatus } from '../../hooks/useUpdateStatus';
 import ShortcutRecorder from './ShortcutRecorder';
 import './Settings.css';
 
@@ -12,19 +11,16 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
-  // Use new updater hook
+  // Use enhanced updater hook
   const {
     updaterState,
     isChecking,
-    isAvailable,
-    isDownloading,
-    isDownloaded,
+    hasError,
+    isUpdateAvailable,
     error,
-    progress,
     updateInfo,
     checkForUpdates,
-    downloadUpdate,
-    installUpdate,
+    openDownloadUrl,
   } = useUpdateStatus();
 
   // Generate user-friendly status message
@@ -33,19 +29,12 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     switch (updaterState.status) {
       case 'checking':
         return 'Checking for updates...';
-      case 'downloading':
-        return `Downloading update... ${progress}%`;
-      case 'downloaded':
-        return `Update downloaded: v${updateInfo?.version || 'Unknown'}`;
       case 'available':
-        return `Update available: v${updateInfo?.version || 'Unknown'}`;
+        return `New version ${updateInfo?.version} is available!`;
       case 'error':
-        if (error?.includes('No network')) return 'No internet connection';
-        if (error?.includes('timed out')) return 'Update check timed out';
-        if (error?.includes('404')) return 'Update files not found';
         return `Error: ${error}`;
       case 'idle':
-        return 'No updates available';
+        return 'You have the latest version';
       default:
         return '';
     }
@@ -81,67 +70,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
       e.stopPropagation();
     }
     if (isChecking) return;
-    await checkForUpdates('settings');
-  };
-
-  const handleDownloadUpdate = async () => {
-    await downloadUpdate();
-  };
-
-  const handleInstallUpdate = async () => {
-    await installUpdate();
-  };
-
-  const renderUpdateProgress = () => {
-    if (!isDownloading) return null;
-    return (
-      <ProgressBar
-        progress={progress}
-        showPercentage={true}
-        className='compact'
-      />
-    );
-  };
-
-  const renderReleaseNotes = () => {
-    if (!updateInfo?.releaseNotes?.length) return null;
-    return (
-      <div
-        style={{
-          marginTop: '8px',
-          background: 'var(--background-tertiary)',
-          borderRadius: '6px',
-          padding: '8px',
-          border: '1px solid var(--border-primary)',
-          maxHeight: '120px',
-          overflowY: 'auto',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '11px',
-            fontWeight: 'bold',
-            color: 'var(--text-primary)',
-            marginBottom: '4px',
-          }}
-        >
-          What&apos;s New in v{updateInfo.version}:
-        </div>
-        {updateInfo.releaseNotes.map((note: string, index: number) => (
-          <div
-            key={index}
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-secondary)',
-              marginBottom: '2px',
-              lineHeight: '1.3',
-            }}
-          >
-            • {note}
-          </div>
-        ))}
-      </div>
-    );
+    await checkForUpdates();
   };
 
   if (!settings) {
@@ -291,22 +220,20 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
           <div className='section-content'>
             <div className='setting-row'>
               <div className='setting-info'>
-                <label className='setting-label'>
-                  Auto check, download and install
-                </label>
+                <label className='setting-label'>Auto check on startup</label>
                 <p className='setting-description'>
-                  Automatically check for updates and install them
+                  Automatically check for updates when the app starts
                 </p>
               </div>
               <div className='setting-control'>
                 <label className='macos-toggle'>
                   <input
                     type='checkbox'
-                    checked={settings.updater?.autoCheckDownloadAndInstall}
+                    checked={settings.updater?.autoCheckOnStartup}
                     onChange={e =>
                       handleSettingChange('updater', {
                         ...settings.updater,
-                        autoCheckDownloadAndInstall: e.target.checked,
+                        autoCheckOnStartup: e.target.checked,
                       })
                     }
                   />
@@ -324,9 +251,11 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 {getUpdateStatusMessage() && (
                   <p
                     style={{
-                      color: getUpdateStatusMessage().includes('Error')
+                      color: hasError
                         ? 'var(--text-danger, #ff4444)'
-                        : 'var(--accent-primary)',
+                        : isUpdateAvailable
+                          ? 'var(--accent-success, #00aa00)'
+                          : 'var(--accent-primary)',
                       fontSize: '12px',
                       marginTop: '4px',
                       fontWeight: 'bold',
@@ -335,55 +264,63 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                     {getUpdateStatusMessage()}
                   </p>
                 )}
-                {renderUpdateProgress()}
-                {renderReleaseNotes()}
+                {isUpdateAvailable && updateInfo && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      background: 'var(--background-tertiary)',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-primary)',
+                      fontSize: '11px',
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+                      Release Notes:
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-secondary)',
+                        lineHeight: '1.4',
+                      }}
+                    >
+                      {updateInfo.releaseNotes}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: '6px',
+                        fontSize: '10px',
+                        color: 'var(--text-tertiary)',
+                      }}
+                    >
+                      Released: {updateInfo.releaseDate}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className='setting-control'>
-                <div className='update-buttons'>
-                  {isChecking && (
-                    <button className='macos-button primary' disabled>
-                      Checking...
-                    </button>
-                  )}
-                  {error && !isChecking && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                  }}
+                >
+                  <button
+                    className='macos-button primary'
+                    onClick={handleCheckForUpdates}
+                    disabled={isChecking}
+                  >
+                    {isChecking ? 'Checking...' : 'Check Now'}
+                  </button>
+                  {isUpdateAvailable && updateInfo && (
                     <button
-                      className='macos-button secondary'
-                      onClick={handleCheckForUpdates}
-                    >
-                      Retry
-                    </button>
-                  )}
-                  {!isAvailable &&
-                    !isDownloading &&
-                    !isDownloaded &&
-                    !isChecking &&
-                    !error && (
-                      <button
-                        className='macos-button primary'
-                        onClick={handleCheckForUpdates}
-                      >
-                        Check Now
-                      </button>
-                    )}
-                  {isAvailable && !isDownloading && !isDownloaded && (
-                    <button
-                      className='macos-button primary'
-                      onClick={handleDownloadUpdate}
+                      className='macos-button success'
+                      onClick={() => openDownloadUrl(updateInfo.downloadUrl)}
+                      style={{ fontSize: '12px' }}
                     >
                       Download Update
-                    </button>
-                  )}
-                  {isDownloading && (
-                    <button className='macos-button primary' disabled>
-                      Downloading...
-                    </button>
-                  )}
-                  {isDownloaded && (
-                    <button
-                      className='macos-button primary'
-                      onClick={handleInstallUpdate}
-                    >
-                      Install and Restart
                     </button>
                   )}
                 </div>

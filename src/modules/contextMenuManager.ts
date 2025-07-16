@@ -110,7 +110,7 @@ export class ContextMenuManager {
   private async checkForUpdates(): Promise<void> {
     try {
       if (this.updaterManager) {
-        await this.updaterManager.checkForUpdates('context');
+        await this.updaterManager.checkForUpdates();
       } else {
         console.warn(
           'UpdaterManager not available for context menu update check'

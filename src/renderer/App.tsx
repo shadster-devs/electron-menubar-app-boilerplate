@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import type { AppSettings } from '../shared/constants';
-import ErrorBoundary from './components/ErrorBoundary';
-import Header from './components/Header';
+import ErrorBoundary from './components/error-boundary/ErrorBoundary';
+import Header from './components/header/Header';
 import HelloWorld from './components/HelloWorld';
-import Settings from './components/Settings';
-import ToastContainer from './components/ToastContainer';
+import Settings from './components/settings/Settings';
+import { useToast } from './hooks/useToast';
 import { useUpdateStatus } from './hooks/useUpdateStatus';
 import './App.css';
 
@@ -17,6 +17,7 @@ const App: React.FC = () => {
 
   // Use centralized update status hook
   const { updaterState } = useUpdateStatus();
+  const { showToast } = useToast();
 
   useEffect(() => {
     // Load settings on app start
@@ -28,29 +29,25 @@ const App: React.FC = () => {
     if (!updaterState) return;
 
     switch (updaterState.status) {
-      case 'checking':
-        (window as any).showToast?.('Checking for updates...', 'info');
+      case 'available':
+        if (updaterState.info) {
+          showToast(
+            `New version ${updaterState.info.version} is available!`,
+            'success'
+          );
+        }
         break;
       case 'idle':
-        (window as any).showToast?.('No updates available', 'success');
+        showToast('You have the latest version', 'success');
         break;
       case 'error':
-        (window as any).showToast?.(
-          `Update error: ${updaterState.error}`,
-          'error'
-        );
-        break;
-      case 'downloaded':
-        // Let macOS handle update notifications natively
-        console.log(
-          'Update downloaded, ready for install via macOS notification'
-        );
+        showToast(`Update error: ${updaterState.error}`, 'error');
         break;
       default:
-        // No toast for other states
+        // No toast for checking status - less noisy
         break;
     }
-  }, [updaterState?.status]);
+  }, [updaterState?.status, showToast]);
 
   // Apply theme to document element whenever settings change
   useEffect(() => {
@@ -124,9 +121,6 @@ const App: React.FC = () => {
             </ErrorBoundary>
           )}
         </div>
-
-        {/* Toast notifications */}
-        <ToastContainer maxToasts={5} />
       </div>
     </ErrorBoundary>
   );

@@ -1,29 +1,105 @@
-import { dialog, BrowserWindow } from 'electron';
-import { autoUpdater } from 'electron-updater';
-import type {
-  UpdaterState,
-  UpdateInfo,
-  UpdateTrigger,
-} from '../shared/constants';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { BrowserWindow, shell } from 'electron';
+import type { UpdaterState, UpdateInfo } from '../shared/constants';
 import { SettingsManager } from './settingsManager';
+
+// Version comparison utilities
+class VersionUtils {
+  static parseVersion(version: string): number[] {
+    return version
+      .replace(/^v/, '')
+      .split('.')
+      .map(num => parseInt(num, 10) || 0);
+  }
+
+  static isNewerVersion(current: string, latest: string): boolean {
+    const currentParts = this.parseVersion(current);
+    const latestParts = this.parseVersion(latest);
+
+    const maxLength = Math.max(currentParts.length, latestParts.length);
+
+    for (let i = 0; i < maxLength; i++) {
+      const currentPart = currentParts[i] || 0;
+      const latestPart = latestParts[i] || 0;
+
+      if (latestPart > currentPart) return true;
+      if (latestPart < currentPart) return false;
+    }
+
+    return false;
+  }
+}
+
+// GitHub API interface
+interface GitHubRelease {
+  tag_name: string;
+  name: string;
+  published_at: string;
+  body: string;
+  html_url: string;
+  assets: Array<{
+    name: string;
+    browser_download_url: string;
+  }>;
+}
 
 export class UpdaterManager {
   private state: UpdaterState = { status: 'idle' };
   private settingsManager: SettingsManager;
   private lastCheckTime: number = 0;
-  private checkOnStartupTimer?: NodeJS.Timeout;
-  private currentTrigger: UpdateTrigger = 'auto';
+  private currentVersion: string;
+  private repositoryUrl: string = '';
 
   constructor(settingsManager: SettingsManager) {
     this.settingsManager = settingsManager;
+    this.currentVersion = this.getCurrentVersion();
     this.init();
+  }
+
+  private getCurrentVersion(): string {
+    try {
+      const packagePath = join(__dirname, '../../package.json');
+      const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+      return packageJson.version || '0.0.0';
+    } catch (error) {
+      console.error('Failed to read current version:', error);
+      return '0.0.0';
+    }
   }
 
   private async init() {
     this.lastCheckTime =
       (await this.settingsManager.getSettings()).lastUpdateCheck || 0;
-    this.setupAutoUpdaterEvents();
-    this.scheduleStartupCheck();
+    await this.loadRepositoryUrl();
+  }
+
+  private async loadRepositoryUrl() {
+    try {
+      const packagePath = join(__dirname, '../../package.json');
+      const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+
+      if (packageJson.repository?.url) {
+        // Convert git+https://github.com/user/repo.git to https://github.com/user/repo
+        this.repositoryUrl = packageJson.repository.url
+          .replace(/^git\+/, '')
+          .replace(/\.git$/, '');
+      }
+
+      // Update settings with repository URL if not set
+      const settings = await this.settingsManager.getSettings();
+      if (!settings.updater.repositoryUrl && this.repositoryUrl) {
+        await this.settingsManager.saveSettings({
+          ...settings,
+          updater: {
+            ...settings.updater,
+            repositoryUrl: this.repositoryUrl,
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load repository URL:', error);
+    }
   }
 
   private setState(newState: UpdaterState) {
@@ -37,76 +113,6 @@ export class UpdaterManager {
     );
   }
 
-  private setupAutoUpdaterEvents() {
-    autoUpdater.on('checking-for-update', () =>
-      this.setState({ status: 'checking' })
-    );
-    autoUpdater.on('update-available', info => {
-      const updateInfo: UpdateInfo = {
-        version: info.version,
-        releaseDate: info.releaseDate,
-        releaseNotes: this.parseReleaseNotes(info),
-      };
-      this.setState({ status: 'available', info: updateInfo });
-      if (this.currentTrigger === 'auto') this.downloadUpdate();
-      else this.promptDownload(updateInfo);
-    });
-    autoUpdater.on('update-not-available', () => {
-      this.setState({ status: 'idle' });
-      this.saveLastCheckTime();
-    });
-    autoUpdater.on('download-progress', progress => {
-      if (this.state.status === 'downloading' && this.state.info) {
-        this.setState({
-          status: 'downloading',
-          progress: Math.round(progress.percent),
-          info: this.state.info,
-        });
-      }
-    });
-    autoUpdater.on('update-downloaded', info => {
-      const updateInfo: UpdateInfo = {
-        version: info.version,
-        releaseDate: info.releaseDate,
-        releaseNotes: this.parseReleaseNotes(info),
-        downloadedFile: (info as any).downloadedFile,
-      };
-      this.setState({ status: 'downloaded', info: updateInfo });
-      this.saveLastCheckTime();
-      this.promptInstall(updateInfo);
-    });
-    autoUpdater.on('error', err => {
-      this.setState({ status: 'error', error: err.message });
-    });
-  }
-
-  private parseReleaseNotes(info: any): string[] {
-    if (typeof info.releaseNotes === 'string') {
-      return info.releaseNotes.split('\n').filter(Boolean);
-    }
-    if (Array.isArray(info.releaseNotes)) {
-      return info.releaseNotes;
-    }
-    return [];
-  }
-
-  private async scheduleStartupCheck() {
-    const settings = await this.settingsManager.getSettings();
-    if (
-      settings.updater?.autoCheckDownloadAndInstall &&
-      this.shouldCheckForUpdates()
-    ) {
-      this.checkOnStartupTimer = setTimeout(
-        () => this.checkForUpdates('auto'),
-        10000
-      );
-    }
-  }
-
-  private shouldCheckForUpdates(): boolean {
-    return Date.now() - this.lastCheckTime > 24 * 60 * 60 * 1000;
-  }
-
   private async saveLastCheckTime() {
     const settings = await this.settingsManager.getSettings();
     await this.settingsManager.saveSettings({
@@ -116,79 +122,122 @@ export class UpdaterManager {
     this.lastCheckTime = Date.now();
   }
 
+  private async fetchLatestRelease(): Promise<GitHubRelease | null> {
+    const settings = await this.settingsManager.getSettings();
+    const repoUrl = settings.updater.repositoryUrl || this.repositoryUrl;
+
+    if (!repoUrl) {
+      throw new Error('Repository URL not configured');
+    }
+
+    // Extract owner/repo from GitHub URL
+    // eslint-disable-next-line no-useless-escape
+    const match = repoUrl.match(/github\.com[\/:]([^\/]+)\/([^\/]+)/);
+    if (!match) {
+      throw new Error('Invalid GitHub repository URL');
+    }
+
+    const [, owner, repo] = match;
+    const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
+
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'Electron-App-Updater',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('No releases found for this repository');
+        }
+        throw new Error(
+          `GitHub API error: ${response.status} ${response.statusText}`
+        );
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error('Network error: Unable to connect to GitHub');
+      }
+      throw error;
+    }
+  }
+
+  private parseReleaseNotes(body: string): string {
+    if (!body) return 'No release notes available.';
+
+    // Clean up markdown and limit length
+    return (
+      body
+        .replace(/#{1,6}\s*/g, '') // Remove headers
+        .replace(/\*\*/g, '') // Remove bold
+        .replace(/\*/g, '') // Remove italics
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links but keep text
+        .trim()
+        .slice(0, 500) + (body.length > 500 ? '...' : '')
+    );
+  }
+
   // --- Public API ---
 
   getStatus(): UpdaterState {
     return this.state;
   }
 
-  async checkForUpdates(trigger: UpdateTrigger = 'auto') {
-    this.currentTrigger = trigger;
+  async checkForUpdates() {
+    this.setState({ status: 'checking' });
+
     try {
-      await autoUpdater.checkForUpdates();
-    } catch (err) {
-      this.setState({
-        status: 'error',
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
+      const latestRelease = await this.fetchLatestRelease();
 
-  downloadUpdate() {
-    if (this.state.status === 'available') {
-      this.setState({
-        status: 'downloading',
-        progress: 0,
-        info: this.state.info,
-      });
-      autoUpdater.downloadUpdate();
-    }
-  }
-
-  installUpdate() {
-    if (this.state.status === 'downloaded') {
-      try {
-        autoUpdater.quitAndInstall(false, true);
-      } catch (err) {
-        // fallback
-        console.error('Error quitting and installing update:', err);
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { app } = require('electron');
-        app.relaunch();
-        app.exit(0);
+      if (!latestRelease) {
+        this.setState({ status: 'idle' });
+        await this.saveLastCheckTime();
+        return { success: true };
       }
+
+      const latestVersion = latestRelease.tag_name;
+
+      if (VersionUtils.isNewerVersion(this.currentVersion, latestVersion)) {
+        // New version available
+        const updateInfo: UpdateInfo = {
+          version: latestVersion,
+          releaseDate: new Date(
+            latestRelease.published_at
+          ).toLocaleDateString(),
+          releaseNotes: this.parseReleaseNotes(latestRelease.body),
+          downloadUrl: latestRelease.html_url,
+          browserDownloadUrl:
+            latestRelease.assets[0]?.browser_download_url ||
+            latestRelease.html_url,
+        };
+
+        this.setState({ status: 'available', info: updateInfo });
+      } else {
+        // No update available
+        this.setState({ status: 'idle' });
+      }
+
+      await this.saveLastCheckTime();
+      return { success: true };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.setState({ status: 'error', error: errorMessage });
+      return { success: false, error: errorMessage };
     }
   }
 
-  // --- Dialogs (can be overridden for testing) ---
-
-  protected promptDownload(info: UpdateInfo) {
-    dialog
-      .showMessageBox({
-        type: 'info',
-        buttons: ['Download', 'Later'],
-        defaultId: 0,
-        title: 'Update Available',
-        message: `Version ${info.version} is available.`,
-        detail: `What's new:\n${info.releaseNotes.slice(0, 3).join('\n')}`,
-      })
-      .then(result => {
-        if (result.response === 0) this.downloadUpdate();
-      });
-  }
-
-  protected promptInstall(info: UpdateInfo) {
-    dialog
-      .showMessageBox({
-        type: 'info',
-        buttons: ['Install and Restart', 'Later'],
-        defaultId: 0,
-        title: 'Update Ready',
-        message: `Version ${info.version} has been downloaded.`,
-        detail: 'Would you like to install it now? The app will restart.',
-      })
-      .then(result => {
-        if (result.response === 0) this.installUpdate();
-      });
+  async openDownloadUrl(url: string): Promise<boolean> {
+    try {
+      await shell.openExternal(url);
+      return true;
+    } catch (error) {
+      console.error('Failed to open download URL:', error);
+      return false;
+    }
   }
 }

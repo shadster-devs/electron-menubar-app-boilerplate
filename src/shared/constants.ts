@@ -1,22 +1,22 @@
 // Shared constants that can be used by both main and renderer processes
 
 export interface UpdaterSettings {
-  autoCheckDownloadAndInstall: boolean;
+  autoCheckOnStartup: boolean;
+  repositoryUrl?: string; // GitHub repository URL for checking updates
 }
 
 export interface UpdateInfo {
   version: string;
   releaseDate: string;
-  releaseNotes: string[];
-  downloadedFile?: string;
+  releaseNotes: string;
+  downloadUrl: string;
+  browserDownloadUrl?: string; // For manual download
 }
 
 export type UpdaterState =
   | { status: 'idle' }
   | { status: 'checking' }
   | { status: 'available'; info: UpdateInfo }
-  | { status: 'downloading'; progress: number; info: UpdateInfo }
-  | { status: 'downloaded'; info: UpdateInfo }
   | { status: 'error'; error: string };
 
 export interface AppSettings {
@@ -52,7 +52,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     height: 500,
   },
   updater: {
-    autoCheckDownloadAndInstall: true,
+    autoCheckOnStartup: false,
+    repositoryUrl: '', // Will be set from package.json repository field
   },
   lastUpdateCheck: 0,
 };
@@ -79,13 +80,8 @@ export interface ElectronAPI {
   quitApp: () => Promise<boolean>;
   hideWindow: () => Promise<boolean>;
 
-  // Updater API
-  checkForUpdates: (
-    triggerSource?: UpdateTrigger
-  ) => Promise<{ success: boolean; error?: string }>;
-  downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
-  installUpdate: () => Promise<{ success: boolean; error?: string }>;
+  // Enhanced updater API
+  checkForUpdates: () => Promise<{ success: boolean; error?: string }>;
   getUpdateStatus: () => Promise<UpdaterState | null>;
+  openDownloadUrl: (url: string) => Promise<boolean>;
 }
-
-export type UpdateTrigger = 'auto' | 'context' | 'settings';

@@ -33,12 +33,11 @@ const electronAPI: ElectronAPI = {
   quitApp: () => ipcRenderer.invoke('app:close'),
   hideWindow: () => ipcRenderer.invoke('app:hide'),
 
-  // Updater API
-  checkForUpdates: (triggerSource?: 'auto' | 'context' | 'settings') =>
-    ipcRenderer.invoke('updater:checkForUpdates', triggerSource),
-  downloadUpdate: () => ipcRenderer.invoke('updater:downloadUpdate'),
-  installUpdate: () => ipcRenderer.invoke('updater:installUpdate'),
+  // Enhanced updater API
+  checkForUpdates: () => ipcRenderer.invoke('updater:checkForUpdates'),
   getUpdateStatus: () => ipcRenderer.invoke('updater:getStatus'),
+  openDownloadUrl: (url: string) =>
+    ipcRenderer.invoke('updater:openDownloadUrl', url),
 };
 
 // Expose the API to the renderer process
