@@ -22,6 +22,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
     downloadUpdate,
   } = useUpdateStatus();
 
+  //dummy
   // Generate user-friendly status message
   const getUpdateStatusMessage = (): string => {
     if (!updateStatus) return '';
