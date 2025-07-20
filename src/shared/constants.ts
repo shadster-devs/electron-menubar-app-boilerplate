@@ -2,6 +2,7 @@
 
 export interface UpdaterSettings {
   autoCheckDownloadAndInstall: boolean;
+  updateDeferred: boolean; // Added to track user deferral
 }
 
 export interface UpdateInfo {
@@ -36,7 +37,7 @@ export interface AppSettings {
     height: number;
   };
   updater: UpdaterSettings;
-  lastUpdateCheck?: number; // Timestamp of last update check
+  lastUpdateCheck?: number;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -55,6 +56,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   updater: {
     autoCheckDownloadAndInstall: true,
+    updateDeferred: false, // Default: not deferred
   },
   lastUpdateCheck: 0,
 };
@@ -86,4 +88,5 @@ export interface ElectronAPI {
   downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
   installUpdate: () => Promise<{ success: boolean; error?: string }>;
   getUpdateStatus: () => Promise<UpdateStatus | null>;
+  deferUpdate: () => Promise<{ success: boolean; error?: string }>;
 }

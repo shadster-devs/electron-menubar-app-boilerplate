@@ -10,97 +10,107 @@ export interface UpdateNotificationProps {
 }
 
 const UpdateNotification: React.FC<UpdateNotificationProps> = ({
-  updateInfo,
-  onInstall,
-  onDismiss,
-}) => {
+                                                                 updateInfo,
+                                                                 onInstall,
+                                                                 onDismiss,
+                                                               }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    // Trigger entrance animation
     requestAnimationFrame(() => {
       setIsVisible(true);
     });
 
-    // Auto-dismiss after 10 seconds
     const timer = setTimeout(() => {
-      handleDismiss();
+      handleDefer();
     }, 10000);
 
     return () => clearTimeout(timer);
   }, []);
 
-  const handleDismiss = () => {
+  const handleDefer = async () => {
     setIsLeaving(true);
+    try {
+      await window.electronAPI?.deferUpdate();
+    } catch (error) {
+      console.error('Error deferring update:', error);
+    }
     setTimeout(() => {
       onDismiss();
-    }, 300); // Match CSS transition duration
+    }, 300);
   };
 
   const handleInstallClick = () => {
     onInstall();
-    handleDismiss(); // Close notification after install
+    handleClose();
+  };
+
+  const handleClose = () => {
+    setIsLeaving(true);
+    setTimeout(() => {
+      onDismiss();
+    }, 300);
   };
 
   return (
-    <div
-      className={`update-notification ${isVisible && !isLeaving ? 'update-notification-visible' : ''} ${isLeaving ? 'update-notification-leaving' : ''}`}
-    >
-      <button
-        className='update-notification-close'
-        onClick={handleDismiss}
-        aria-label='Dismiss notification'
+      <div
+          className={`update-notification ${
+              isVisible && !isLeaving ? 'update-notification-visible' : ''
+          } ${isLeaving ? 'update-notification-leaving' : ''}`}
       >
-        <X size={16} />
-      </button>
-
-      <div className='update-notification-icon'>
-        <Download size={20} />
-      </div>
-
-      <div className='update-notification-content'>
-        <h3 className='update-notification-title'>Update Downloaded</h3>
-        <p className='update-notification-message'>
-          Version {updateInfo?.version || 'Unknown'} is ready to install.
-        </p>
-
-        {updateInfo?.releaseNotes && updateInfo.releaseNotes.length > 0 && (
-          <div className='update-notification-notes'>
-            <p className='notes-title'>What&apos;s new:</p>
-            <ul className='notes-list'>
-              {updateInfo.releaseNotes
-                .slice(0, 3)
-                .map((note: string, index: number) => (
-                  <li key={index} className='notes-item'>
-                    {note.length > 60 ? `${note.substring(0, 60)}...` : note}
-                  </li>
-                ))}
-              {updateInfo.releaseNotes.length > 3 && (
-                <li className='notes-item'>
-                  +{updateInfo.releaseNotes.length - 3} more changes...
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      <div className='update-notification-actions'>
         <button
-          className='update-notification-button primary'
-          onClick={handleInstallClick}
+            className="update-notification-close"
+            onClick={handleDefer}
+            aria-label="Dismiss notification"
         >
-          Install & Restart
+          <X size={16} />
         </button>
-        <button
-          className='update-notification-button secondary'
-          onClick={handleDismiss}
-        >
-          Later
-        </button>
+
+        <div className="update-notification-icon">
+          <Download size={20} />
+        </div>
+
+        <div className="update-notification-content">
+          <h3 className="update-notification-title">Update Downloaded</h3>
+          <p className="update-notification-message">
+            Version {updateInfo?.version || 'Unknown'} is ready to install.
+          </p>
+
+          {updateInfo?.releaseNotes?.length > 0 && (
+              <div className="update-notification-notes">
+                <p className="notes-title">What&apos;s new:</p>
+                <ul className="notes-list">
+                  {updateInfo.releaseNotes.slice(0, 3).map((note: string, index: number) => (
+                      <li key={index} className="notes-item">
+                        {note.length > 60 ? `${note.substring(0, 60)}...` : note}
+                      </li>
+                  ))}
+                  {updateInfo.releaseNotes.length > 3 && (
+                      <li className="notes-item">
+                        +{updateInfo.releaseNotes.length - 3} more changes...
+                      </li>
+                  )}
+                </ul>
+              </div>
+          )}
+        </div>
+
+        <div className="update-notification-actions">
+          <button
+              className="update-notification-button primary"
+              onClick={handleInstallClick}
+          >
+            Install & Restart
+          </button>
+          <button
+              className="update-notification-button secondary"
+              onClick={handleDefer}
+          >
+            Later
+          </button>
+        </div>
       </div>
-    </div>
   );
 };
 

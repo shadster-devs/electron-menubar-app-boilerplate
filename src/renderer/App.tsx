@@ -5,6 +5,7 @@ import Header from './components/Header';
 import HelloWorld from './components/HelloWorld';
 import Settings from './components/Settings';
 import ToastContainer from './components/ToastContainer';
+import UpdateNotification from './components/UpdateNotification';
 import { useUpdateStatus } from './hooks/useUpdateStatus';
 import './App.css';
 
@@ -14,60 +15,55 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>('home');
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [showUpdateNotification, setShowUpdateNotification] = useState(false);
 
-  // Use centralized update status hook
   const { updateStatus } = useUpdateStatus();
 
   useEffect(() => {
-    // Load settings on app start
     loadSettings();
   }, []);
 
-  // Handle update status changes for toast notifications
   useEffect(() => {
     if (!updateStatus) return;
 
-    // Show toast when checking starts
     if (updateStatus.checking) {
       (window as any).showToast?.('Checking for updates...', 'info');
     }
 
-    // Show toast when no update is available
     if (
-      !updateStatus.checking &&
-      !updateStatus.available &&
-      !updateStatus.error
+        !updateStatus.checking &&
+        !updateStatus.available &&
+        !updateStatus.error
     ) {
       (window as any).showToast?.('No updates available', 'success');
     }
 
-    // Show toast for errors
     if (updateStatus.error) {
       (window as any).showToast?.(
-        `Update error: ${updateStatus.error}`,
-        'error'
-      );
-    }
-
-    // Show notification when update is downloaded
-    if (
-      updateStatus.downloaded &&
-      !updateStatus.error &&
-      updateStatus.updateInfo
-    ) {
-      // Let macOS handle update notifications natively
-      console.log(
-        'Update downloaded, ready for install via macOS notification'
+          `Update error: ${updateStatus.error}`,
+          'error'
       );
     }
   }, [
     updateStatus?.checking,
     updateStatus?.available,
     updateStatus?.error,
-    updateStatus?.downloaded,
   ]);
 
-  // Apply theme to document element whenever settings change
+  useEffect(() => {
+    if (
+        updateStatus?.downloaded &&
+        updateStatus?.updateInfo &&
+        settings?.updater?.updateDeferred === false
+    ) {
+      setShowUpdateNotification(true);
+    }
+  }, [
+    updateStatus?.downloaded,
+    updateStatus?.updateInfo,
+    settings?.updater?.updateDeferred,
+  ]);
+
   useEffect(() => {
     if (settings?.theme) {
       document.documentElement.setAttribute('data-theme', settings.theme);
@@ -91,59 +87,79 @@ const App: React.FC = () => {
   };
 
   const handleSettingsChange = async (newSettings: AppSettings) => {
-    // Update local state immediately for UI responsiveness
     setSettings(newSettings);
 
-    // Save settings to persistent storage through SettingsManager
     try {
       const success = await window.electronAPI?.saveSettings(newSettings);
-      if (success) {
-        console.log('Settings saved successfully');
-      } else {
+      if (!success) {
         console.error('Failed to save settings');
-        // Optionally reload settings from storage on failure
         loadSettings();
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      // Reload settings on error to ensure UI reflects actual stored state
       loadSettings();
     }
   };
 
-  // Removed handleDismissNotification as it's no longer needed
+  const handleDeferUpdate = async () => {
+    try {
+      await window.electronAPI?.deferUpdate();
+    } catch (err) {
+      console.error('Failed to defer update:', err);
+    } finally {
+      setShowUpdateNotification(false);
+      loadSettings();
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    try {
+      await window.electronAPI?.installUpdate();
+    } catch (err) {
+      console.error('Failed to install update:', err);
+    } finally {
+      setShowUpdateNotification(false);
+    }
+  };
 
   return (
-    <ErrorBoundary>
-      <div className='app'>
-        <Header currentTab={currentTab} onTabChange={handleTabChange} />
+      <ErrorBoundary>
+        <div className='app'>
+          <Header currentTab={currentTab} onTabChange={handleTabChange} />
 
-        <div className='content'>
-          {currentTab === 'home' && (
-            <ErrorBoundary>
-              <HelloWorld />
-            </ErrorBoundary>
-          )}
-          {currentTab === 'settings' && (
-            <ErrorBoundary>
-              {isLoadingSettings ? (
-                <div className='loading-container'>
-                  <div className='loading'>Loading settings...</div>
-                </div>
-              ) : (
-                <Settings
-                  settings={settings}
-                  onSettingsChange={handleSettingsChange}
-                />
-              )}
-            </ErrorBoundary>
+          <div className='content'>
+            {currentTab === 'home' && (
+                <ErrorBoundary>
+                  <HelloWorld />
+                </ErrorBoundary>
+            )}
+            {currentTab === 'settings' && (
+                <ErrorBoundary>
+                  {isLoadingSettings ? (
+                      <div className='loading-container'>
+                        <div className='loading'>Loading settings...</div>
+                      </div>
+                  ) : (
+                      <Settings
+                          settings={settings}
+                          onSettingsChange={handleSettingsChange}
+                      />
+                  )}
+                </ErrorBoundary>
+            )}
+          </div>
+
+          <ToastContainer maxToasts={5} />
+
+          {showUpdateNotification && updateStatus?.updateInfo && (
+              <UpdateNotification
+                  updateInfo={updateStatus.updateInfo}
+                  onInstall={handleInstallUpdate}
+                  onDismiss={handleDeferUpdate}
+              />
           )}
         </div>
-
-        {/* Toast notifications */}
-        <ToastContainer maxToasts={5} />
-      </div>
-    </ErrorBoundary>
+      </ErrorBoundary>
   );
 };
 

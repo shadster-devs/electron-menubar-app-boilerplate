@@ -249,7 +249,7 @@ export class IPCManager {
 
     ipcMain.handle('updater:installUpdate', async () => {
       try {
-        this.updaterManager.installUpdate();
+        await this.updaterManager.installUpdate();
         return { success: true };
       } catch (error) {
         console.error('Error installing update:', error);
@@ -266,6 +266,19 @@ export class IPCManager {
       } catch (error) {
         console.error('Error getting update status:', error);
         return null;
+      }
+    });
+
+    ipcMain.handle('updater:deferUpdate', async () => {
+      try {
+        await this.updaterManager.deferUpdate();
+        return { success: true };
+      } catch (error) {
+        console.error('Error deferring update:', error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
       }
     });
   }
