@@ -38,6 +38,7 @@ const electronAPI: ElectronAPI = {
   downloadUpdate: () => ipcRenderer.invoke('updater:downloadUpdate'),
   installUpdate: () => ipcRenderer.invoke('updater:installUpdate'),
   getUpdateStatus: () => ipcRenderer.invoke('updater:getStatus'),
+  deferUpdate: () => ipcRenderer.invoke('updater:deferUpdate'),
 };
 
 // Expose the API to the renderer process

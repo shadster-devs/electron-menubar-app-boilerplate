@@ -23,8 +23,8 @@ export const useUpdateStatus = (): UseUpdateStatusResult => {
   useEffect(() => {
     const handleUpdateStatus = (event: MessageEvent) => {
       if (
-          event.origin !== window.location.origin &&
-          event.origin !== 'file://'
+        event.origin !== window.location.origin &&
+        event.origin !== 'file://'
       ) {
         return;
       }

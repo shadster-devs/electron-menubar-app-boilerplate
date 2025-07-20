@@ -31,30 +31,26 @@ const App: React.FC = () => {
     }
 
     if (
-        !updateStatus.checking &&
-        !updateStatus.available &&
-        !updateStatus.error
+      !updateStatus.checking &&
+      !updateStatus.available &&
+      !updateStatus.error
     ) {
       (window as any).showToast?.('No updates available', 'success');
     }
 
     if (updateStatus.error) {
       (window as any).showToast?.(
-          `Update error: ${updateStatus.error}`,
-          'error'
+        `Update error: ${updateStatus.error}`,
+        'error'
       );
     }
-  }, [
-    updateStatus?.checking,
-    updateStatus?.available,
-    updateStatus?.error,
-  ]);
+  }, [updateStatus?.checking, updateStatus?.available, updateStatus?.error]);
 
   useEffect(() => {
     if (
-        updateStatus?.downloaded &&
-        updateStatus?.updateInfo &&
-        settings?.updater?.updateDeferred === false
+      updateStatus?.downloaded &&
+      updateStatus?.updateInfo &&
+      settings?.updater?.updateDeferred === false
     ) {
       setShowUpdateNotification(true);
     }
@@ -123,43 +119,43 @@ const App: React.FC = () => {
   };
 
   return (
-      <ErrorBoundary>
-        <div className='app'>
-          <Header currentTab={currentTab} onTabChange={handleTabChange} />
+    <ErrorBoundary>
+      <div className='app'>
+        <Header currentTab={currentTab} onTabChange={handleTabChange} />
 
-          <div className='content'>
-            {currentTab === 'home' && (
-                <ErrorBoundary>
-                  <HelloWorld />
-                </ErrorBoundary>
-            )}
-            {currentTab === 'settings' && (
-                <ErrorBoundary>
-                  {isLoadingSettings ? (
-                      <div className='loading-container'>
-                        <div className='loading'>Loading settings...</div>
-                      </div>
-                  ) : (
-                      <Settings
-                          settings={settings}
-                          onSettingsChange={handleSettingsChange}
-                      />
-                  )}
-                </ErrorBoundary>
-            )}
-          </div>
-
-          <ToastContainer maxToasts={5} />
-
-          {showUpdateNotification && updateStatus?.updateInfo && (
-              <UpdateNotification
-                  updateInfo={updateStatus.updateInfo}
-                  onInstall={handleInstallUpdate}
-                  onDismiss={handleDeferUpdate}
-              />
+        <div className='content'>
+          {currentTab === 'home' && (
+            <ErrorBoundary>
+              <HelloWorld />
+            </ErrorBoundary>
+          )}
+          {currentTab === 'settings' && (
+            <ErrorBoundary>
+              {isLoadingSettings ? (
+                <div className='loading-container'>
+                  <div className='loading'>Loading settings...</div>
+                </div>
+              ) : (
+                <Settings
+                  settings={settings}
+                  onSettingsChange={handleSettingsChange}
+                />
+              )}
+            </ErrorBoundary>
           )}
         </div>
-      </ErrorBoundary>
+
+        <ToastContainer maxToasts={5} />
+
+        {showUpdateNotification && updateStatus?.updateInfo && (
+          <UpdateNotification
+            updateInfo={updateStatus.updateInfo}
+            onInstall={handleInstallUpdate}
+            onDismiss={handleDeferUpdate}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 };
 

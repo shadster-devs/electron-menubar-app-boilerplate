@@ -1,5 +1,5 @@
-import { autoUpdater } from 'electron-updater';
 import { BrowserWindow } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import type { UpdateStatus } from '../shared/constants';
 import { SettingsManager } from './settingsManager';
 
@@ -53,6 +53,7 @@ export class UpdaterManager {
     autoUpdater.on('update-not-available', info => {
       this.updateStatus.checking = false;
       this.updateStatus.available = false;
+      console.log(info);
       this.saveLastCheckTime();
       this.sendStatus();
     });
@@ -117,7 +118,9 @@ export class UpdaterManager {
 
   private parseReleaseNotes(info: any): string[] {
     if (typeof info.releaseNotes === 'string') {
-      return info.releaseNotes.split('\n').filter((line: string) => line.trim());
+      return info.releaseNotes
+        .split('\n')
+        .filter((line: string) => line.trim());
     }
     if (Array.isArray(info.releaseNotes)) {
       return info.releaseNotes;
@@ -148,7 +151,7 @@ export class UpdaterManager {
     } catch (error) {
       this.updateStatus.checking = false;
       this.updateStatus.error =
-          error instanceof Error ? error.message : 'Unknown error';
+        error instanceof Error ? error.message : 'Unknown error';
       this.sendStatus();
     }
   }
@@ -163,7 +166,7 @@ export class UpdaterManager {
     } catch (error) {
       this.updateStatus.downloading = false;
       this.updateStatus.error =
-          error instanceof Error ? error.message : 'Download failed';
+        error instanceof Error ? error.message : 'Download failed';
       this.sendStatus();
     }
   }
@@ -178,6 +181,7 @@ export class UpdaterManager {
       autoUpdater.quitAndInstall(false, true);
     } catch (error) {
       this.updateStatus.error = 'Failed to install update';
+      console.log(error);
       this.sendStatus();
     }
   }

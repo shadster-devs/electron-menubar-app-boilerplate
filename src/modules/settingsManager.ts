@@ -58,8 +58,8 @@ export class SettingsManager {
   }
 
   async set<K extends keyof AppSettings>(
-      key: K,
-      value: AppSettings[K]
+    key: K,
+    value: AppSettings[K]
   ): Promise<boolean> {
     try {
       const settings = await this.getSettings();
@@ -72,8 +72,8 @@ export class SettingsManager {
   }
 
   async updateSetting<K extends keyof AppSettings>(
-      key: K,
-      updater: (current: AppSettings[K]) => AppSettings[K]
+    key: K,
+    updater: (current: AppSettings[K]) => AppSettings[K]
   ): Promise<boolean> {
     try {
       const settings = await this.getSettings();
