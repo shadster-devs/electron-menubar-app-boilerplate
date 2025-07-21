@@ -21,8 +21,8 @@ const HelloWorld: React.FC = () => {
         <p>Welcome to your Electron Menubar Boilerplate!</p>
         <p>
           This is a simple React TypeScript application running in the menubar.
-          v1.4.14.
         </p>
+        <p>Version: {process.env.VERSION}</p>
       </div>
       <p>
         <strong>Features:</strong>

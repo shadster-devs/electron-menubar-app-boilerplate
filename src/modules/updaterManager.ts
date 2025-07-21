@@ -244,7 +244,7 @@ export class UpdaterManager {
 
     try {
       console.log('Installing update and restarting...');
-      autoUpdater.quitAndInstall(false, true);
+      autoUpdater.quitAndInstall(true, true);
     } catch (error) {
       console.error('Error installing update:', error);
       this.updateStatus = {

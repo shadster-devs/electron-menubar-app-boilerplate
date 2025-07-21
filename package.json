@@ -1,6 +1,6 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.4.16",
+  "version": "1.4.17",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
