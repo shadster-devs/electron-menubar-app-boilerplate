@@ -90,9 +90,8 @@ module.exports = (env, argv) => {
           minifyURLs: true,
         } : false
       }),
-      // Define global variables for renderer process
+      // Define environment variables for renderer process
       new webpack.DefinePlugin({
-        'global': 'globalThis', // Fix global undefined error
         'process.env.NODE_ENV': JSON.stringify(isProduction ? 'production' : 'development'),
       }),
     ],

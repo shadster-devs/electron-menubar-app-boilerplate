@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menubar App</title>
+    <script>
+        // Fix for 'global is not defined' error in Electron renderer
+        if (typeof global === 'undefined') {
+            var global = globalThis;
+        }
+    </script>
     <style>
         /* Default to light mode */
         body {
