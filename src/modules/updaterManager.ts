@@ -1,207 +1,310 @@
-import { autoUpdater } from 'electron-updater';
 import { BrowserWindow } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import type { UpdateStatus } from '../shared/constants';
-import { SettingsManager } from './settingsManager';
+import type { SettingsManager } from './settingsManager';
 
 export class UpdaterManager {
   private settingsManager: SettingsManager;
-  private updateStatus: UpdateStatus = {
-    checking: false,
-    available: false,
-    downloading: false,
-    downloaded: false,
-  };
-  private checkOnStartupTimer?: NodeJS.Timeout;
+  private updateStatus: UpdateStatus;
+  private updateCheckInProgress: boolean = false;
+  private downloadInProgress: boolean = false;
   private lastCheckTime: number = 0;
-  private readonly CHECK_INTERVAL_24H = 24 * 60 * 60 * 1000; // ms
+  private updateCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(settingsManager: SettingsManager) {
     this.settingsManager = settingsManager;
-    this.init();
+    this.updateStatus = {
+      checking: false,
+      available: false,
+      downloading: false,
+      downloaded: false,
+    };
+
+    this.setupAutoUpdater();
+    this.setupPeriodicCheck();
   }
 
-  private async init() {
-    autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = false;
-    autoUpdater.allowDowngrade = false;
+  private setupAutoUpdater(): void {
+    // Configure auto-updater
+    autoUpdater.autoDownload = false; // We control download manually
+    autoUpdater.autoInstallOnAppQuit = true;
 
-    await this.loadLastCheckTime();
-    await this.scheduleStartupCheck();
-    this.registerEventHandlers();
-
-    console.log('UpdaterManager initialized');
-  }
-
-  private registerEventHandlers() {
+    // Handle check for updates result
     autoUpdater.on('checking-for-update', () => {
-      this.updateStatus.checking = true;
-      this.updateStatus.error = undefined;
-      this.sendStatus();
+      console.log('Checking for update...');
+      this.updateStatus = {
+        ...this.updateStatus,
+        checking: true,
+        error: undefined,
+      };
+      this.emitStatusUpdate();
     });
 
     autoUpdater.on('update-available', info => {
-      this.updateStatus.checking = false;
-      this.updateStatus.available = true;
-      this.updateStatus.updateInfo = {
-        version: info.version,
-        releaseDate: info.releaseDate,
-        releaseNotes: this.parseReleaseNotes(info),
+      console.log('Update available:', info);
+      this.updateCheckInProgress = false;
+      this.updateStatus = {
+        ...this.updateStatus,
+        checking: false,
+        available: true,
+        updateInfo: {
+          version: info.version,
+          releaseDate: info.releaseDate,
+          releaseNotes: Array.isArray(info.releaseNotes)
+            ? info.releaseNotes.map(note =>
+                typeof note === 'string' ? note : note.note || ''
+              )
+            : [info.releaseNotes || ''],
+        },
       };
-      this.sendStatus();
+      this.emitStatusUpdate();
+
+      // Auto-download if enabled
+      const settings = this.settingsManager.getSettingsSync();
+      if (settings.updater?.autoCheckDownloadAndInstall) {
+        this.downloadUpdate();
+      }
     });
 
     autoUpdater.on('update-not-available', info => {
-      this.updateStatus.checking = false;
-      this.updateStatus.available = false;
-      this.saveLastCheckTime();
-      this.sendStatus();
-    });
-
-    autoUpdater.on('download-progress', progress => {
-      this.updateStatus.downloading = true;
-      this.updateStatus.progress = Math.round(progress.percent);
-      this.sendStatus();
-    });
-
-    autoUpdater.on('update-downloaded', async info => {
-      this.updateStatus.downloading = false;
-      this.updateStatus.downloaded = true;
-      this.updateStatus.updateInfo = {
-        ...this.updateStatus.updateInfo!,
-        version: info.version,
-        releaseDate: info.releaseDate,
-        downloadedFile: (info as any).downloadedFile,
+      console.log('Update not available:', info);
+      this.updateCheckInProgress = false;
+      this.updateStatus = {
+        ...this.updateStatus,
+        checking: false,
+        available: false,
+        error: undefined,
       };
-
-      // Reset deferred flag since update is now downloaded
-      await this.settingsManager.updateSetting('updater', updater => ({
-        ...updater,
-        updateDeferred: false,
-      }));
-
-      this.saveLastCheckTime();
-      this.sendStatus();
+      this.emitStatusUpdate();
     });
 
     autoUpdater.on('error', err => {
-      this.updateStatus.checking = false;
-      this.updateStatus.downloading = false;
-      this.updateStatus.error = err.message;
-      this.sendStatus();
+      console.error('Auto-updater error:', err);
+      this.updateCheckInProgress = false;
+      this.downloadInProgress = false;
+      this.updateStatus = {
+        ...this.updateStatus,
+        checking: false,
+        downloading: false,
+        error: err.message || 'Unknown error occurred',
+      };
+      this.emitStatusUpdate();
+    });
+
+    autoUpdater.on('download-progress', progressObj => {
+      console.log(`Download progress: ${progressObj.percent}%`);
+      this.updateStatus = {
+        ...this.updateStatus,
+        downloading: true,
+        progress: Math.round(progressObj.percent),
+      };
+      this.emitStatusUpdate();
+    });
+
+    autoUpdater.on('update-downloaded', info => {
+      console.log('Update downloaded:', info);
+      this.downloadInProgress = false;
+      this.updateStatus = {
+        ...this.updateStatus,
+        downloading: false,
+        downloaded: true,
+        progress: 100,
+        updateInfo: {
+          version: info.version,
+          releaseDate: info.releaseDate,
+          releaseNotes: Array.isArray(info.releaseNotes)
+            ? info.releaseNotes.map(note =>
+                typeof note === 'string' ? note : note.note || ''
+              )
+            : [info.releaseNotes || ''],
+          downloadedFile: info.downloadedFile,
+        },
+      };
+      this.emitStatusUpdate();
+
+      // Auto-install if enabled and not deferred
+      const settings = this.settingsManager.getSettingsSync();
+      if (
+        settings.updater?.autoCheckDownloadAndInstall &&
+        !settings.updater?.updateDeferred
+      ) {
+        // Wait a bit before auto-installing to let user see the notification
+        setTimeout(() => {
+          this.installUpdate();
+        }, 5000);
+      }
     });
   }
 
-  private async loadLastCheckTime() {
+  private setupPeriodicCheck(): void {
+    // Check for updates periodically if auto-update is enabled
+    const checkInterval = 1000 * 60 * 60 * 4; // Every 4 hours
+
+    this.updateCheckInterval = setInterval(() => {
+      const settings = this.settingsManager.getSettingsSync();
+      if (settings.updater?.autoCheckDownloadAndInstall) {
+        this.checkForUpdates(true); // Silent check
+      }
+    }, checkInterval);
+
+    // Initial check on startup if enabled
+    setTimeout(() => {
+      const settings = this.settingsManager.getSettingsSync();
+      if (settings.updater?.autoCheckDownloadAndInstall) {
+        this.checkForUpdates(true); // Silent startup check
+      }
+    }, 10000); // Wait 10 seconds after app start
+  }
+
+  async checkForUpdates(silent: boolean = false): Promise<void> {
+    if (this.updateCheckInProgress) {
+      console.log('Update check already in progress');
+      return;
+    }
+
+    // Rate limiting: don't check more than once every 5 minutes
+    const now = Date.now();
+    if (now - this.lastCheckTime < 5 * 60 * 1000) {
+      console.log('Rate limiting: too soon since last check');
+      if (!silent) {
+        this.updateStatus = {
+          ...this.updateStatus,
+          error: 'Please wait before checking again',
+        };
+        this.emitStatusUpdate();
+      }
+      return;
+    }
+
     try {
-      const settings = await this.settingsManager.getSettings();
-      this.lastCheckTime = settings.lastUpdateCheck || 0;
-    } catch {
-      this.lastCheckTime = 0;
-    }
-  }
+      this.updateCheckInProgress = true;
+      this.lastCheckTime = now;
 
-  private async saveLastCheckTime() {
-    const settings = await this.settingsManager.getSettings();
-    await this.settingsManager.saveSettings({
-      ...settings,
-      lastUpdateCheck: Date.now(),
-    });
-    this.lastCheckTime = Date.now();
-  }
+      // Update last check time in settings
+      await this.settingsManager.updateSetting('lastUpdateCheck', () => now);
 
-  private sendStatus() {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('updater:status', this.updateStatus);
-    });
-  }
-
-  private parseReleaseNotes(info: any): string[] {
-    if (typeof info.releaseNotes === 'string') {
-      return info.releaseNotes.split('\n').filter((line: string) => line.trim());
-    }
-    if (Array.isArray(info.releaseNotes)) {
-      return info.releaseNotes;
-    }
-    return [`Version ${info.version} is now available.`];
-  }
-
-  private shouldCheck(): boolean {
-    return Date.now() - this.lastCheckTime >= this.CHECK_INTERVAL_24H;
-  }
-
-  private async scheduleStartupCheck() {
-    const settings = await this.settingsManager.getSettings();
-    if (!settings.updater?.autoCheckDownloadAndInstall) return;
-
-    if (!this.shouldCheck()) return;
-
-    this.checkOnStartupTimer = setTimeout(() => {
-      this.checkForUpdates();
-    }, 10_000);
-  }
-
-  // 🔹 Public API
-  public async checkForUpdates(): Promise<void> {
-    if (this.updateStatus.checking) return;
-    try {
       await autoUpdater.checkForUpdates();
     } catch (error) {
-      this.updateStatus.checking = false;
-      this.updateStatus.error =
-          error instanceof Error ? error.message : 'Unknown error';
-      this.sendStatus();
+      this.updateCheckInProgress = false;
+      console.error('Error checking for updates:', error);
+
+      this.updateStatus = {
+        ...this.updateStatus,
+        checking: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to check for updates',
+      };
+      this.emitStatusUpdate();
+      throw error;
     }
   }
 
-  public async downloadUpdate(): Promise<void> {
-    if (!this.updateStatus.available || this.updateStatus.downloading) return;
+  async downloadUpdate(): Promise<void> {
+    if (this.downloadInProgress) {
+      console.log('Download already in progress');
+      return;
+    }
+
+    if (!this.updateStatus.available) {
+      throw new Error('No update available to download');
+    }
+
     try {
-      this.updateStatus.downloading = true;
-      this.updateStatus.progress = 0;
-      this.sendStatus();
+      this.downloadInProgress = true;
+      this.updateStatus = {
+        ...this.updateStatus,
+        downloading: true,
+        progress: 0,
+        error: undefined,
+      };
+      this.emitStatusUpdate();
+
       await autoUpdater.downloadUpdate();
     } catch (error) {
-      this.updateStatus.downloading = false;
-      this.updateStatus.error =
-          error instanceof Error ? error.message : 'Download failed';
-      this.sendStatus();
+      this.downloadInProgress = false;
+      console.error('Error downloading update:', error);
+
+      this.updateStatus = {
+        ...this.updateStatus,
+        downloading: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to download update',
+      };
+      this.emitStatusUpdate();
+      throw error;
     }
   }
 
-  public async installUpdate(): Promise<void> {
+  installUpdate(): void {
+    if (!this.updateStatus.downloaded) {
+      throw new Error('No update downloaded to install');
+    }
+
     try {
-      await this.settingsManager.updateSetting('updater', updater => ({
-        ...updater,
-        updateDeferred: false,
-      }));
-      autoUpdater.autoInstallOnAppQuit = true;
+      console.log('Installing update and restarting...');
       autoUpdater.quitAndInstall(false, true);
     } catch (error) {
-      this.updateStatus.error = 'Failed to install update';
-      this.sendStatus();
+      console.error('Error installing update:', error);
+      this.updateStatus = {
+        ...this.updateStatus,
+        error:
+          error instanceof Error ? error.message : 'Failed to install update',
+      };
+      this.emitStatusUpdate();
+      throw error;
     }
   }
 
-  public async deferUpdate(): Promise<void> {
-    await this.settingsManager.updateSetting('updater', updater => ({
-      ...updater,
-      updateDeferred: true,
-    }));
+  async deferUpdate(): Promise<void> {
+    try {
+      // Mark update as deferred in settings
+      await this.settingsManager.updateSetting('updater', current => ({
+        ...current,
+        updateDeferred: true,
+      }));
+
+      console.log('Update deferred by user');
+    } catch (error) {
+      console.error('Error deferring update:', error);
+      throw error;
+    }
   }
 
-  public getUpdateStatus(): UpdateStatus {
+  getUpdateStatus(): UpdateStatus {
     return { ...this.updateStatus };
   }
 
-  public async updateSettings(): Promise<void> {
+  async updateSettings(): Promise<void> {
+    // This method is called when settings change
+    // Reset defer status when auto-update settings change
     const settings = await this.settingsManager.getSettings();
-    if (this.checkOnStartupTimer) clearTimeout(this.checkOnStartupTimer);
+
     if (settings.updater?.autoCheckDownloadAndInstall) {
-      await this.scheduleStartupCheck();
+      // Re-enable auto-updates, clear deferred status
+      await this.settingsManager.updateSetting('updater', current => ({
+        ...current,
+        updateDeferred: false,
+      }));
     }
   }
 
-  public cleanup(): void {
-    if (this.checkOnStartupTimer) clearTimeout(this.checkOnStartupTimer);
+  private emitStatusUpdate(): void {
+    // Send status update to all renderer processes
+    const windows = BrowserWindow.getAllWindows();
+    windows.forEach(window => {
+      window.webContents.send('updater:status', this.updateStatus);
+    });
+  }
+
+  cleanup(): void {
+    if (this.updateCheckInterval) {
+      clearInterval(this.updateCheckInterval);
+      this.updateCheckInterval = null;
+    }
+
+    // Remove all listeners
+    autoUpdater.removeAllListeners();
   }
 }

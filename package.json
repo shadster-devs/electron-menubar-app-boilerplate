@@ -1,11 +1,12 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.4.9",
+  "version": "1.4.11",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
     "build": "npm run build-main && npm run build-renderer && npm run copy-assets",
     "dev": "concurrently \"npm run build-main:watch\" \"npm run build-renderer:watch\" \"npm run copy-assets\" \"wait-on dist/main.js && electron .\"",
+    "dev:updater": "NODE_ENV=development npm run dev",
     "start": "electron .",
     "build-renderer": "webpack --mode production",
     "build-renderer:watch": "webpack --mode development --watch",
@@ -19,7 +20,8 @@
     "type-check": "tsc --noEmit",
     "package": "npm run build && electron-builder build",
     "package:mac-unsigned": "npm run build && electron-builder build -c.mac.identity=null --publish never",
-    "package:publish": "npm run build && electron-builder build --publish always"
+    "package:publish": "npm run build && electron-builder build --publish always",
+    "release:test": "npm run build && electron-builder build --publish=onTagOrDraft"
   },
   "keywords": [
     "electron",
@@ -121,32 +123,6 @@
         "width": 540,
         "height": 380
       }
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ],
-      "artifactName": "${productName}.${ext}"
-    },
-    "linux": {
-      "artifactName": "${productName}-${arch}.${ext}",
-      "target": [
-        {
-          "target": "deb",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        },
-        {
-          "target": "rpm",
-          "arch": [
-            "arm64",
-            "x64"
-          ]
-        }
-      ],
-      "category": "Development"
     },
     "publish": {
       "provider": "github",
