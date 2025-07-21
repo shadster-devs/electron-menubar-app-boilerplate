@@ -1,10 +1,11 @@
 {
   "name": "electron-menubar-app",
-  "version": "1.4.14",
+  "version": "1.4.15",
   "description": "Electron React TypeScript Menubar App",
   "main": "dist/main.js",
   "scripts": {
-    "build": "npm run build-main && npm run build-renderer && npm run copy-assets",
+    "build": "npm run clean && npm run build-main && npm run build-renderer && npm run copy-assets",
+    "clean": "rm -rf dist",
     "dev": "concurrently \"npm run build-main:watch\" \"npm run build-renderer:watch\" \"npm run copy-assets\" \"wait-on dist/main.js && electron .\"",
     "dev:updater": "NODE_ENV=development npm run dev",
     "start": "electron .",
